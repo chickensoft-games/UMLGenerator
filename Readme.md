@@ -97,6 +97,6 @@ classDiagram
 [line-coverage]: Chickensoft.LogicBlocks.Tests/badges/line_coverage.svg
 
 [VSCode Extension]: https://marketplace.visualstudio.com/items?itemName=jebbs.plantuml
-[Jetbrains plugin]: https://marketplace.visualstudio.com/items?itemName=jebbs.plantuml
+[Jetbrains plugin]: https://plugins.jetbrains.com/plugin/7017-plantuml-integration
 [PlantUML]: https://plantuml.com/
 
