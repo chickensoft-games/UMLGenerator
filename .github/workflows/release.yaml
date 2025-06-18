@@ -53,22 +53,13 @@ jobs:
           # Use the .NET SDK from global.json in the root of the repository.
           global-json-file: global.json
 
-      # Write version to file so .NET will build correct version.
-      - name: 📝 Write Version to File
-        uses: jacobtomlinson/gha-find-replace@v3
-        with:
-          find: "0.0.0-devbuild"
-          replace: ${{ steps.next-version.outputs.version }}
-          regex: false
-          include: Chickensoft.LogicBlocks/Chickensoft.LogicBlocks.csproj
-
       - name: 📝 Write Diagram Generator Version to File
         uses: jacobtomlinson/gha-find-replace@v3
         with:
           find: "0.0.0-devbuild"
           replace: ${{ steps.next-version.outputs.version }}
           regex: false
-          include: Chickensoft.LogicBlocks.DiagramGenerator/Chickensoft.LogicBlocks.DiagramGenerator.csproj
+          include: src/Chickensoft.UMLGenerator/Chickensoft.UMLGenerator.csproj
 
       - name: 📦 Build
         run: |
