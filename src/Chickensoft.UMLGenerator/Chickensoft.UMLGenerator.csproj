@@ -37,8 +37,8 @@
     <ItemGroup>
         <!-- Has to be in its own item group -->
         <None Remove="nupkg/**" />
-        <None Include="../../Readme.md" Pack="true" PackagePath="\" />
-        <None Include="../../Contributing.md" Pack="true" PackagePath="\" />
+        <None Include="../../README.md" Pack="true" PackagePath="\" />
+        <None Include="../../CONTRIBUTING.md" Pack="true" PackagePath="\" />
         <None Include="../../LICENSE" Pack="true" PackagePath="\" Visible="false" />
         <None Include="../../docs/icon.png" Pack="true" PackagePath="" Visible="false" />
     </ItemGroup>
