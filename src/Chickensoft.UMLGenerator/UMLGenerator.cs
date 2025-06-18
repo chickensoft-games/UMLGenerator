@@ -5,12 +5,9 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Antlr4.Runtime;
-using Antlr4.Runtime.Tree;
-using Exceptions;
+using Helpers;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Models;
-using Righthand.GodotTscnParser.Engine.Grammar;
 
 [Generator]
 public class UMLGenerator : IIncrementalGenerator
@@ -63,7 +60,7 @@ public class UMLGenerator : IIncrementalGenerator
 			if (string.IsNullOrWhiteSpace(tscnContent))
 				continue;
 
-			var listener = RunTscnBaseListener(tscnContent!, context.ReportDiagnostic, additionalText.Path);
+			var listener = TscnHelpers.RunTscnBaseListener(tscnContent!, context.ReportDiagnostic, additionalText.Path);
 
 			var nodeHierarchy = new NodeHierarchy(listener, additionalText, data);
 			hierarchyList.Add(nodeHierarchy.Name, nodeHierarchy);
@@ -81,7 +78,8 @@ public class UMLGenerator : IIncrementalGenerator
 			}
 			else
 			{
-				nodeHierarchy.AddContextList(syntaxContextGrouping.ToList());
+				var nodeContextList = nodeHierarchy.ContextList;
+				nodeContextList.AddRange(syntaxContextGrouping.ToList());
 			}
 		}
 		
@@ -111,48 +109,5 @@ public class UMLGenerator : IIncrementalGenerator
 			File.WriteAllText(destFile, source);
 		}
 		
-	}
-	
-	private TscnListener RunTscnBaseListener(string text, Action<Diagnostic> reportDiagnostic, string filePath)
-	{
-		try
-		{
-			var input = new AntlrInputStream(text);
-			var lexer = new TscnLexer(input);
-			lexer.AddErrorListener(new SyntaxErrorListener());
-			var tokens = new CommonTokenStream(lexer);
-			var parser = new TscnParser(tokens)
-			{
-				BuildParseTree = true
-			};
-			parser.AddErrorListener(new ErrorListener());
-			var tree = parser.file();
-			var listener = new TscnListener(reportDiagnostic, filePath);
-			ParseTreeWalker.Default.Walk(listener, tree);
-			return listener;
-		}
-		catch (ParserException ex)
-		{
-			var msg = ex.GetMessageWithFilePath(filePath);
-			throw new Exception(msg, ex);
-		}
-	}
-
-	private class SyntaxErrorListener : IAntlrErrorListener<int>
-	{
-		public void SyntaxError(TextWriter output, IRecognizer recognizer, int offendingSymbol,
-			int line, int charPositionInLine, string msg, RecognitionException e)
-		{
-			throw new ParserException(msg, line, charPositionInLine, e);
-		}
-	}
-
-	private class ErrorListener : BaseErrorListener
-	{
-		public override void SyntaxError(TextWriter output, IRecognizer recognizer, IToken offendingSymbol,
-			int line, int charPositionInLine, string msg, RecognitionException e)
-		{
-			throw new ParserException(msg, line, charPositionInLine, e);
-		}
 	}
 }

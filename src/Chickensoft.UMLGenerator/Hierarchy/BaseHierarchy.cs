@@ -6,11 +6,18 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using Godot;
+using Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 public abstract class BaseHierarchy(GenerationData data)
 {
+	private Dictionary<string, BaseHierarchy> _dictOfChildren = [];
+	private Dictionary<string, BaseHierarchy> _dictOfParents = [];
+	
+	public IReadOnlyDictionary<string, BaseHierarchy> DictOfChildren => _dictOfChildren;
+	public IReadOnlyDictionary<string, BaseHierarchy> DictOfParents => _dictOfParents;
+	
 	public virtual List<GeneratorSyntaxContext> ContextList { get; } = [];
 	
 	public TypeDeclarationSyntax? TypeSyntax => ContextList.Select(x => x.Node)
@@ -26,12 +33,6 @@ public abstract class BaseHierarchy(GenerationData data)
 	public string FullScriptPathFromParent { get; private set; } = null!;
 	public string Name => Path.GetFileNameWithoutExtension(FilePath);
 	
-	private Dictionary<string, BaseHierarchy> _dictOfChildren = [];
-	private Dictionary<string, BaseHierarchy> _dictOfParents = [];
-	
-	public IReadOnlyDictionary<string, BaseHierarchy> DictOfChildren => _dictOfChildren;
-	public IReadOnlyDictionary<string, BaseHierarchy> DictOfParents => _dictOfParents;
-
 	public virtual void GenerateHierarchy(IDictionary<string, BaseHierarchy> nodeHierarchyList)
 	{
 		var propertyDeclarations = GetSyntaxContextForPropertyDeclarations();
@@ -60,28 +61,6 @@ public abstract class BaseHierarchy(GenerationData data)
 		}
 	}
 
-	private AttributeSyntax? GetClassDiagramAttribute()
-	{
-		var attributeName = nameof(ClassDiagramAttribute).Replace("Attribute", "");
-		var classDiagramAttribute = ContextList
-			.Select(x => (x.Node as TypeDeclarationSyntax)?.AttributeLists.SelectMany(x => x.Attributes))
-			.SelectMany(x => x)
-			.FirstOrDefault(x => x.Name.ToString() == attributeName);
-		
-		return classDiagramAttribute;
-	}
-
-	public bool ShouldUseVSCode()
-	{
-		var attribute = GetClassDiagramAttribute();
-		return attribute?.ArgumentList?.Arguments.Any(arg =>
-			arg.NameEquals is NameEqualsSyntax nameEquals &&
-			nameEquals.Name.ToString() == nameof(ClassDiagramAttribute.UseVSCodePaths) &&
-			arg.Expression is LiteralExpressionSyntax { Token.ValueText: "true" }) ?? false;
-	}
-	
-	public bool HasClassDiagramAttribute() => GetClassDiagramAttribute() != null;
-
 	internal void AddChild(BaseHierarchy node)
 	{
 		if(!_dictOfChildren.ContainsKey(node.Name))
@@ -103,11 +82,6 @@ public abstract class BaseHierarchy(GenerationData data)
 		}
 		else
 			Console.WriteLine($"Found duplicate {node.Name} in {Name}");
-	}
-
-	public void AddContextList(List<GeneratorSyntaxContext> list)
-	{
-		ContextList.AddRange(list);
 	}
 
 	/// <summary>
@@ -143,38 +117,6 @@ public abstract class BaseHierarchy(GenerationData data)
 
 		return listOfChildContexts;
 	}
-
-	/// <summary>
-	/// This will return type properties which exist in the interface
-	/// </summary>
-	/// <returns></returns>
-	private IEnumerable<PropertyDeclarationSyntax> GetInterfacePropertyDeclarations()
-	{
-		if (InterfaceSyntax == null) return [];
-		return from interfaceMember in InterfaceSyntax.Members
-			from typeMember in TypeSyntax.Members
-			where typeMember is PropertyDeclarationSyntax property &&
-			      interfaceMember is PropertyDeclarationSyntax interfaceProperty &&
-			      property.Identifier.Value == interfaceProperty.Identifier.Value
-			orderby (typeMember as PropertyDeclarationSyntax).Identifier.ValueText
-			select typeMember as PropertyDeclarationSyntax;
-	}
-	
-	/// <summary>
-	/// This will return type methods which exist in the interface
-	/// </summary>
-	/// <returns></returns>
-	private IEnumerable<MethodDeclarationSyntax> GetInterfaceMethodDeclarations()
-	{
-		if (InterfaceSyntax == null) return [];
-		return from interfaceMember in InterfaceSyntax!.Members
-			from typeMember in TypeSyntax.Members
-			where typeMember is MethodDeclarationSyntax typeMethod &&
-			      interfaceMember is MethodDeclarationSyntax interfaceMethod &&
-			      typeMethod.Identifier.Value == interfaceMethod.Identifier.Value
-			orderby (typeMember as MethodDeclarationSyntax).Identifier.ValueText
-			select typeMember as MethodDeclarationSyntax;
-	}
 	
 	internal string GetDiagram(int depth, bool useVSCodePaths)
 	{
@@ -190,7 +132,7 @@ public abstract class BaseHierarchy(GenerationData data)
 		if (childrenToDraw.Count == 0)
 			return typeDefinition;
 		
-		var newFilePath = useVSCodePaths ? GetVSCodePath(FullFilePath) : GetPathWithDepth(FilePath, depth);
+		var newFilePath = useVSCodePaths ? HierarchyHelpers.GetVSCodePath(FullFilePath) : HierarchyHelpers.GetPathWithDepth(FilePath, depth);
 		
 		var childrenDefinitions = string.Join("\n\t",
 			childrenToDraw.Select(x =>
@@ -238,9 +180,9 @@ public abstract class BaseHierarchy(GenerationData data)
 		var interfaceMethodsString = string.Empty;
 		var interfacePropertiesString = string.Empty;
 
-		var newScriptPath = GetScriptPath(useVSCodePaths, depth, out var hasScript);
+		var newScriptPath = this.GetScriptPath(useVSCodePaths, depth, out var hasScript);
 		
-		var propertiesFromInterface = GetInterfacePropertyDeclarations().ToList();
+		var propertiesFromInterface = this.GetInterfacePropertyDeclarations().ToList();
 		var allProperties = TypeSyntax?.Members.OfType<PropertyDeclarationSyntax>() ?? [];
 			
 		var props = 
@@ -312,7 +254,7 @@ public abstract class BaseHierarchy(GenerationData data)
 					if(!insideProp.TryGetValue(propName!, out var child))
 						return value;
 					
-					var scriptPath = useVSCodePaths ? GetVSCodePath(child.FullScriptPath) : GetPathWithDepth(child.ScriptPath, depth);
+					var scriptPath = useVSCodePaths ? HierarchyHelpers.GetVSCodePath(child.FullScriptPath) : HierarchyHelpers.GetPathWithDepth(child.ScriptPath, depth);
 					
 					var scriptDefinitions = $" - [[{scriptPath} Script]]";
 					
@@ -323,7 +265,7 @@ public abstract class BaseHierarchy(GenerationData data)
 			if (!string.IsNullOrWhiteSpace(interfacePropertiesString))
 				interfacePropertiesString = "\n--\n" + interfacePropertiesString;
 
-			var methodsFromInterface = GetInterfaceMethodDeclarations();
+			var methodsFromInterface = this.GetInterfaceMethodDeclarations();
 
 			interfaceMethodsString = string.Join("\n\t",
 				methodsFromInterface.Select(x =>
@@ -347,50 +289,5 @@ public abstract class BaseHierarchy(GenerationData data)
 		}
 
 		""";
-	}
-
-	private string GetScriptPath(bool useVSCodePaths, int depth, out bool hasScript)
-	{
-		hasScript = !string.IsNullOrEmpty(ScriptPath) || !string.IsNullOrEmpty(ScriptPathFromParent);
-		string filePath;
-		string fullFilePath;
-		
-		if (hasScript)
-		{
-			if (!string.IsNullOrEmpty(ScriptPath))
-			{
-				filePath = ScriptPath;
-				fullFilePath = FullScriptPath;
-			}
-			else
-			{
-				filePath = ScriptPathFromParent;
-				fullFilePath = FullScriptPathFromParent;
-			}
-		}
-		else
-		{
-			filePath = FilePath;
-			fullFilePath =  FullFilePath;
-		}
-
-		return useVSCodePaths ? GetVSCodePath(fullFilePath) : GetPathWithDepth(filePath, depth);
-	}
-	
-	public string GetPathWithDepth(string path, int depth)
-	{
-		if (string.IsNullOrWhiteSpace(path)) 
-			return string.Empty;
-		
-		var depthString = string.Join("", Enumerable.Repeat("../", depth));
-		return depthString + path;
-	}
-
-	private string GetVSCodePath(string path)
-	{
-		if (string.IsNullOrWhiteSpace(path)) 
-			return string.Empty;
-
-		return $"vscode://file/{path}";
 	}
 }
