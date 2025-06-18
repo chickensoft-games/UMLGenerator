@@ -1,7 +1,9 @@
 namespace Chickensoft.UMLGenerator.Helpers;
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Models;
 
@@ -59,6 +61,42 @@ public static class HierarchyHelpers
 			      typeMethod.Identifier.Value == interfaceMethod.Identifier.Value
 			orderby (typeMember as MethodDeclarationSyntax).Identifier.ValueText
 			select typeMember as MethodDeclarationSyntax;
+	}
+
+	/// <summary>
+	/// Returns all SyntaxContexts for properties which don't have a Dependency attribute
+	/// </summary>
+	/// <returns></returns>
+	public static IList<GeneratorSyntaxContext> GetSyntaxContextForPropertyDeclarations(this BaseHierarchy hierarchy, IEnumerable<GeneratorSyntaxContext> allSyntaxContexts)
+	{
+		var typeSyntax = hierarchy.TypeSyntax;
+		if (typeSyntax == null)
+			return ImmutableList<GeneratorSyntaxContext>.Empty;
+
+		var allSyntaxContextList = allSyntaxContexts.ToImmutableList();
+		var listOfChildContexts = new List<GeneratorSyntaxContext>();
+			
+		var properties = typeSyntax
+			.Members.OfType<PropertyDeclarationSyntax>()
+			.Where(x => 
+				!x.AttributeLists.SelectMany(x => x.Attributes)
+					.Any(x => x.Name.ToString() == "Dependency"));
+	
+		foreach (var property in properties)
+		{
+			var type = property.Type.ToString();
+			var childContexts = allSyntaxContextList
+				.Where(x =>
+				{
+					var typeSyntax = x.Node as TypeDeclarationSyntax;
+					var sourceFileName = typeSyntax?.Identifier.ValueText;
+					return sourceFileName == type && !hierarchy.DictOfChildren.ContainsKey(type);
+				});
+			
+			listOfChildContexts.AddRange(childContexts);
+		}
+
+		return listOfChildContexts;
 	}
 	
 	public static string GetScriptPath(this BaseHierarchy hierarchy, bool useVSCodePaths, int depth, out bool hasScript)

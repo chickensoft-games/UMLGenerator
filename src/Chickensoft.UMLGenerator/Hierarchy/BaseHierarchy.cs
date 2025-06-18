@@ -35,7 +35,7 @@ public abstract class BaseHierarchy(GenerationData data)
 	
 	public virtual void GenerateHierarchy(IDictionary<string, BaseHierarchy> nodeHierarchyList)
 	{
-		var propertyDeclarations = GetSyntaxContextForPropertyDeclarations();
+		var propertyDeclarations = this.GetSyntaxContextForPropertyDeclarations(data.SyntaxContexts);
 		foreach (var ctx in propertyDeclarations)
 		{
 			var typeName = Path.GetFileNameWithoutExtension(ctx.SemanticModel.SyntaxTree.FilePath);
@@ -82,40 +82,6 @@ public abstract class BaseHierarchy(GenerationData data)
 		}
 		else
 			Console.WriteLine($"Found duplicate {node.Name} in {Name}");
-	}
-
-	/// <summary>
-	/// Returns all SyntaxContexts for properties which don't have a Dependency attribute
-	/// </summary>
-	/// <returns></returns>
-	private IList<GeneratorSyntaxContext> GetSyntaxContextForPropertyDeclarations()
-	{
-		if (TypeSyntax == null)
-			return ImmutableList<GeneratorSyntaxContext>.Empty;
-		
-		var listOfChildContexts = new List<GeneratorSyntaxContext>();
-			
-		var properties = TypeSyntax
-			.Members.OfType<PropertyDeclarationSyntax>()
-			.Where(x => 
-				!x.AttributeLists.SelectMany(x => x.Attributes)
-					.Any(x => x.Name.ToString() == "Dependency"));
-	
-		foreach (var property in properties)
-		{
-			var type = property.Type.ToString();
-			var childContexts = data.SyntaxContexts
-				.Where(x =>
-				{
-					var typeSyntax = x.Node as TypeDeclarationSyntax;
-					var sourceFileName = typeSyntax?.Identifier.ValueText;
-					return sourceFileName == type && !DictOfChildren.ContainsKey(type);
-				});
-			
-			listOfChildContexts.AddRange(childContexts);
-		}
-
-		return listOfChildContexts;
 	}
 	
 	internal string GetDiagram(int depth, bool useVSCodePaths)
