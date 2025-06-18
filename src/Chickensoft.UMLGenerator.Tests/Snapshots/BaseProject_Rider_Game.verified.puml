@@ -1,0 +1,24 @@
+﻿@startuml
+
+package Game-Scene [[../../TestCases/BaseProject_Rider/Game.tscn]] {
+	
+class Game  {
+	[[../../Game/Game.cs ScriptFile]]
+--
+[[../../Game/Game.cs:22 GameLogic]] - [[../../TestCases/BaseProject_Rider/Logic/GameLogic.cs Script]]
+	[[../../Game/Game.cs:21 GameRepo]] - [[../../TestCases/BaseProject_Rider/Domain/GameRepo.cs Script]]
+}
+
+	
+class GameRepo  {
+	[[../../TestCases/BaseProject_Rider/Domain/GameRepo.cs ScriptFile]]
+--
++ [[../../TestCases/BaseProject_Rider/Domain/GameRepo.cs:15 Instantiator]]
+--
+[[../../TestCases/BaseProject_Rider/Domain/GameRepo.cs:17 CreateInstantiator()]]
+}
+
+	Game::GameRepo --> GameRepo
+}
+
+@enduml

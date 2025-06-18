@@ -3,6 +3,7 @@ namespace Chickensoft.UMLGenerator.Tests;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using EmptyFiles;
 using Microsoft.CodeAnalysis;
@@ -20,7 +21,7 @@ public class SnapshotTests
 	}
 
 	public static IEnumerable<object[]> TestFolderPaths = 
-		Directory.GetDirectories("./TestCases").Select(x => new object[] {x});
+		Directory.GetDirectories(CurrentDir("./TestCases")).Select(x => new object[] {x});
 
 	[Theory, MemberData(nameof(TestFolderPaths))]
 	public async Task VerifyTestCases(string testFolderPath)
@@ -42,16 +43,24 @@ public class SnapshotTests
 			additionalTexts.Add(new TestAdditionalFile(filePath, text));
 		}
 		
-		// Create an instance of the source generator.
 		var generator = new UMLGenerator();
 
-		// Source generators should be tested using 'GeneratorDriver'.
-		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
+		var driver = CSharpGeneratorDriver
+			.Create(generator)
+			.AddAdditionalTexts([..additionalTexts])
+			.WithUpdatedAnalyzerConfigOptions(
+				new ConfigOptionsProvider(
+					new ConfigOptions(
+						new Dictionary<string, string>
+						{
+							{
+								"build_property.projectdir", CurrentDir("./")
+							}
+						}
+					)
+				)
+			);
 
-		// Add the additional file separately from the compilation.
-		driver = driver.AddAdditionalTexts([..additionalTexts]);
-
-		// To run generators, we can use an empty compilation.
 		var compilation = CSharpCompilation.Create(
 			nameof(SnapshotTests),
 			syntaxTrees: csharpFiles);
@@ -74,4 +83,12 @@ public class SnapshotTests
 			await Verifier.Verify(text, extension: "puml", settings: settings);
 		}
 	}
+	
+	public static string CurrentDir(
+		string relativePathInProject,
+		[CallerFilePath] string? callerFilePath = null
+	) => Path.GetFullPath(Path.Join(
+		Path.GetDirectoryName(callerFilePath),
+		relativePathInProject
+	));
 }

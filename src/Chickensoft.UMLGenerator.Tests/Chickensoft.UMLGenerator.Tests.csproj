@@ -27,14 +27,9 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="TestCases\**\*.cs" CopyToOutputDirectory="Always" />
-      <Content Include="TestCases\**\*.tscn" CopyToOutputDirectory="Always" />
+      <Content Include="TestCases\**\*.cs" />
+      <Content Include="TestCases\**\*.tscn" />
       <Compile Remove="TestCases\**\*.cs" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Snapshots\" />
-      <Folder Include="TestCases\BaseProject\Logic\" />
     </ItemGroup>
     
 

@@ -1,8 +1,8 @@
+namespace Chickensoft.UMLGenerator.Tests.Utils;
+
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
-
-namespace Chickensoft.UMLGenerator.Tests.Utils;
 
 public class TestAdditionalFile : AdditionalText
 {
