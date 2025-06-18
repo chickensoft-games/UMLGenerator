@@ -14,8 +14,9 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.13.0" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing.XUnit" Version="1.1.1"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.2"/>
-        <PackageReference Include="xunit" Version="2.4.2"/>
-        <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
+        <PackageReference Include="Verify.Xunit" Version="30.4.0" />
+        <PackageReference Include="xunit" Version="2.9.3" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.1">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
@@ -25,5 +26,16 @@
         <ProjectReference Include="..\Chickensoft.UMLGenerator\Chickensoft.UMLGenerator.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include="TestCases\**\*.cs" CopyToOutputDirectory="Always" />
+      <Content Include="TestCases\**\*.tscn" CopyToOutputDirectory="Always" />
+      <Compile Remove="TestCases\**\*.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Snapshots\" />
+      <Folder Include="TestCases\BaseProject\Logic\" />
+    </ItemGroup>
+    
 
 </Project>
