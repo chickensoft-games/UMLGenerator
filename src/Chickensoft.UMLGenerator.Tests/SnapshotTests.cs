@@ -21,9 +21,8 @@ public class SnapshotTests
 
 	public static IEnumerable<object[]> TestFolderPaths = 
 		Directory.GetDirectories("./TestCases").Select(x => new object[] {x});
-	
-	[Theory]
-	[MemberData(nameof(TestFolderPaths))]
+
+	[Theory, MemberData(nameof(TestFolderPaths))]
 	public async Task VerifyTestCases(string testFolderPath)
 	{
 		var additionalTexts = new List<AdditionalText>();
@@ -59,7 +58,12 @@ public class SnapshotTests
 
 		driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _);
 
-		foreach (var pumlPath in Directory.GetFiles(testFolderPath, "*.g.puml", SearchOption.AllDirectories))
+		var generatedPumls = Directory.GetFiles(testFolderPath, "*.g.puml", SearchOption.AllDirectories);
+		
+		if(generatedPumls.Length == 0)
+			Assert.Fail("No generated files were found.");
+
+		foreach (var pumlPath in generatedPumls)
 		{
 			var testName = $"{Path.GetFileName(testFolderPath)}_{Path.GetFileName(pumlPath).Replace(".g.puml", "")}";
 			var settings = new VerifySettings();
