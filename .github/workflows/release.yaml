@@ -75,7 +75,7 @@ jobs:
 
       - name: ✨ Create Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_BASIC }}
+          GITHUB_TOKEN: ${{ secrets.GH_BASIC_BASTANI }}
         run: |
           version="${{ steps.next-version.outputs.version }}"
           gh release create --title "v$version" --generate-notes "$version" \
@@ -84,5 +84,5 @@ jobs:
       - name: 🛜 Publish to Nuget
         run: |
             dotnet nuget push "${{ steps.gen-package-path.outputs.package }}" \
-            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --api-key "${{ secrets.NUGET_API_KEY_BASTANI }}" \
             --source "https://api.nuget.org/v3/index.json" --skip-duplicate
