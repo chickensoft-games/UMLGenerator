@@ -88,14 +88,10 @@ jobs:
         run: |
           version="${{ steps.next-version.outputs.version }}"
           gh release create --title "v$version" --generate-notes "$version" \
-            "${{ steps.package-path.outputs.package }}" "${{ steps.gen-package-path.outputs.package }}"
+            "${{ steps.gen-package-path.outputs.package }}"
 
       - name: 🛜 Publish to Nuget
         run: |
-          dotnet nuget push "${{ steps.package-path.outputs.package }}" \
-            --api-key "${{ secrets.NUGET_API_KEY }}" \
-            --source "https://api.nuget.org/v3/index.json" --skip-duplicate
-
             dotnet nuget push "${{ steps.gen-package-path.outputs.package }}" \
             --api-key "${{ secrets.NUGET_API_KEY }}" \
             --source "https://api.nuget.org/v3/index.json" --skip-duplicate
