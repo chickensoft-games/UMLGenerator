@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <!-- Source generators must target netstandard 2.0 -->
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFramework>netstandard2.1</TargetFramework>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>preview</LangVersion>
@@ -28,10 +28,10 @@
         <PackageTags>UML;Godot;CSharp;C#;Chickensoft;Gamedev;Utility;Utilities;Source Generator;Generator;Godot 4;</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <PackageProjectUrl>https://github.com/Bastani/UMLGenerator</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/chickensoft-games/UMLGenerator</PackageProjectUrl>
 
         <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>git@github.com:bastani/umlgenerator.git</RepositoryUrl>
+        <RepositoryUrl>git@github.com:chickensoft-games/UMLGenerator.git</RepositoryUrl>
     </PropertyGroup>
     
     <ItemGroup>
