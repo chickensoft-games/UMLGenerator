@@ -65,9 +65,12 @@ public class SnapshotTests
 			nameof(SnapshotTests),
 			syntaxTrees: csharpFiles);
 
-		driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _);
+		driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics);
 
 		var generatedPumls = Directory.GetFiles(testFolderPath, "*.g.puml", SearchOption.AllDirectories);
+		
+		if(diagnostics.Any())
+			Assert.Fail(string.Join("\n", diagnostics.Select(x => x.ToString())));
 		
 		if(generatedPumls.Length == 0)
 			Assert.Fail("No generated files were found.");

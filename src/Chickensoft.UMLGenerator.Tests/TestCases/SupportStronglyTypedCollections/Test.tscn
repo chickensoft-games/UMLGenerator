@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3 uid="uid://drfg2pomukldl"]
+
+[ext_resource type="Script" uid="uid://i56ibityiao0" path="res://Test.cs" id="1_046cw"]
+
+[node name="Test" parent="." instance=ExtResource("4_8d5qn")]
+position = Vector2(120, 0)
+MyDictionary = Dictionary[String, int]({
+"hello": 0
+})
+
+[node name="Test" parent="." instance=ExtResource("4_gm3xf")]
+position = Vector2(120, 0)
+MyArray = Array[String]([])
+Tags = Array[ExtResource("6_tabqk")]([])

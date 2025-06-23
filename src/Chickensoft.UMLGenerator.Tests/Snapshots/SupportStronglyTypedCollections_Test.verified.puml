@@ -1,0 +1,7 @@
+﻿@startuml
+
+class Test << (S,black) >> {
+	[[../../TestCases/SupportStronglyTypedCollections/Test.tscn SceneFile]]
+}
+
+@enduml
