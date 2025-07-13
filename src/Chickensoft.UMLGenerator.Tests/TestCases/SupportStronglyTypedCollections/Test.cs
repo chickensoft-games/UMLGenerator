@@ -3,7 +3,7 @@ namespace Chickensoft.UMLGenerator.Tests;
 using Chickensoft.UMLGenerator;
 
 [ClassDiagram]
-public partial class StronglyTypedCollection
+public partial class Test
 {
 	
 }

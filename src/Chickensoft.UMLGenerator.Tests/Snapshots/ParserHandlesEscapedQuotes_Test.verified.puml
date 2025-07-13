@@ -1,0 +1,7 @@
+﻿@startuml
+
+class Test << (S,black) >> {
+	[[../../TestCases/ParserHandlesEscapedQuotes/Test.tscn SceneFile]]
+}
+
+@enduml
