@@ -46,6 +46,21 @@ public static class HierarchyHelpers
 			orderby (typeMember as PropertyDeclarationSyntax).Identifier.ValueText
 			select typeMember as PropertyDeclarationSyntax;
 	}
+
+	/// <summary>
+	/// This will return type properties which exist in the interface
+	/// </summary>
+	/// <returns></returns>
+	public static IEnumerable<PropertyDeclarationSyntax> GetClassDependentPropertyDeclarations(this BaseHierarchy hierarchy)
+	{
+		if (hierarchy.TypeSyntax == null) return [];
+		return from typeMember in hierarchy.TypeSyntax.Members
+			where typeMember is PropertyDeclarationSyntax property &&
+			      property.AttributeLists.SelectMany(x => x.Attributes)
+				      .Any(x => x.Name.ToString() == "Dependency")
+			orderby (typeMember as PropertyDeclarationSyntax).Identifier.ValueText
+			select typeMember as PropertyDeclarationSyntax;
+	}
 	
 	/// <summary>
 	/// This will return type methods which exist in the interface
@@ -67,14 +82,14 @@ public static class HierarchyHelpers
 	/// Returns all SyntaxContexts for properties which do have a Dependency attribute
 	/// </summary>
 	/// <returns></returns>
-	public static IList<GeneratorSyntaxContext> GetSyntaxContextForDependantPropertyDeclarations(this BaseHierarchy hierarchy, IEnumerable<GeneratorSyntaxContext> allSyntaxContexts)
+	public static IList<GeneratorSyntaxContext> GetSyntaxContextForDependentPropertyDeclarations(this BaseHierarchy hierarchy, IEnumerable<GeneratorSyntaxContext> allSyntaxContexts)
 	{
 		var typeSyntax = hierarchy.TypeSyntax;
 		if (typeSyntax == null)
 			return ImmutableList<GeneratorSyntaxContext>.Empty;
 
 		var allSyntaxContextList = allSyntaxContexts.ToImmutableList();
-		var listOfDependantContexts = new List<GeneratorSyntaxContext>();
+		var listOfDependentContexts = new List<GeneratorSyntaxContext>();
 
 		var properties = typeSyntax
 			.Members.OfType<PropertyDeclarationSyntax>()
@@ -93,10 +108,10 @@ public static class HierarchyHelpers
 					return sourceFileName == type;
 				});
 
-			listOfDependantContexts.AddRange(childContexts);
+			listOfDependentContexts.AddRange(childContexts);
 		}
 
-		return listOfDependantContexts;
+		return listOfDependentContexts;
 	}
 
 	/// <summary>

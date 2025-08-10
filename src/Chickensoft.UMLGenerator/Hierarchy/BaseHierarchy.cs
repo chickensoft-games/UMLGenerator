@@ -12,11 +12,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 public abstract class BaseHierarchy(GenerationData data)
 {
-	private Dictionary<string, BaseHierarchy> _dictOfDependants = [];
+	private Dictionary<string, BaseHierarchy> _dictOfDependencies = [];
 	private Dictionary<string, BaseHierarchy> _dictOfChildren = [];
 	private Dictionary<string, BaseHierarchy> _dictOfParents = [];
 
-	public IReadOnlyDictionary<string, BaseHierarchy> DictOfDependants => _dictOfDependants;
+	public IReadOnlyDictionary<string, BaseHierarchy> DictOfDependencies => _dictOfDependencies;
 	public IReadOnlyDictionary<string, BaseHierarchy> DictOfChildren => _dictOfChildren;
 	public IReadOnlyDictionary<string, BaseHierarchy> DictOfParents => _dictOfParents;
 	
@@ -48,14 +48,14 @@ public abstract class BaseHierarchy(GenerationData data)
 			childNodeHierarchy.AddParent(this);
 		}
 
-		var dependantDeclarations = this.GetSyntaxContextForDependantPropertyDeclarations(data.SyntaxContexts);
-		foreach (var ctx in dependantDeclarations)
+		var dependentDeclarations = this.GetSyntaxContextForDependentPropertyDeclarations(data.SyntaxContexts);
+		foreach (var ctx in dependentDeclarations)
 		{
 			var typeName = Path.GetFileNameWithoutExtension(ctx.SemanticModel.SyntaxTree.FilePath);
 			if (!nodeHierarchyList.TryGetValue(typeName, out var childNodeHierarchy))
 				continue;
 
-			AddDependant(childNodeHierarchy);
+			AddDependent(childNodeHierarchy);
 		}
 
 		var parameterList = TypeSyntax?.ParameterList?.Parameters ?? Enumerable.Empty<ParameterSyntax>();
@@ -73,12 +73,12 @@ public abstract class BaseHierarchy(GenerationData data)
 		}
 	}
 
-	internal void AddDependant(BaseHierarchy node)
+	internal void AddDependent(BaseHierarchy node)
 	{
-		if(!_dictOfDependants.ContainsKey(node.Name))
-			_dictOfDependants.Add(node.Name, node);
+		if(!_dictOfDependencies.ContainsKey(node.Name))
+			_dictOfDependencies.Add(node.Name, node);
 		else
-			Console.WriteLine($"Found duplicate dependant {node.Name} in {Name}");
+			Console.WriteLine($"Found duplicate dependent {node.Name} in {Name}");
 	}
 
 
@@ -111,7 +111,7 @@ public abstract class BaseHierarchy(GenerationData data)
 		
 		var childrenToDraw = DictOfChildren.Values
 			.Where(x => x.DictOfChildren.Count != 0 ||
-			            x.DictOfDependants.Count != 0 ||
+			            x.DictOfDependencies.Count != 0 ||
 			            x.GetInterfacePropertyDeclarations().Any() ||
 			            x.GetInterfaceMethodDeclarations().Any() ||
 						!properties.Values.Contains(x)
@@ -142,21 +142,6 @@ public abstract class BaseHierarchy(GenerationData data)
 			})
 		);
 
-		var dependantRelationships = string.Join("\n\t",
-			childrenToDraw
-				.Where(x => x.DictOfDependants.Any())
-				.Select(node =>
-			{
-				var relationships = node
-					.DictOfDependants
-					.Select(dependant =>
-						$"{node.Name}::ScriptFile -> {dependant.Value.Name}::ScriptFile : \"Depends On\""
-					);
-				var joinedRelationships = string.Join("\n\t", relationships);
-				return joinedRelationships;
-			})
-		);
-
 		var packageType = this switch
 		{
 			TypeHierarchy => "Type",
@@ -171,7 +156,6 @@ public abstract class BaseHierarchy(GenerationData data)
 			  	{{typeDefinition}}
 			  	{{childrenDefinitions}}
 			  	{{childrenRelationships}}
-			  	{{dependantRelationships}}
 			  }
 
 			  """;
@@ -182,6 +166,7 @@ public abstract class BaseHierarchy(GenerationData data)
 		children = ImmutableDictionary<string, BaseHierarchy>.Empty;
 		
 		var interfaceMethodsString = string.Empty;
+		var dependencyPropertiesString = string.Empty;
 		var interfacePropertiesString = string.Empty;
 
 		var newScriptPath = this.GetScriptPath(useVSCodePaths, depth, out var hasScript);
@@ -280,6 +265,25 @@ public abstract class BaseHierarchy(GenerationData data)
 			if (!string.IsNullOrWhiteSpace(interfaceMethodsString))
 				interfaceMethodsString = "\n--\n" + interfaceMethodsString;
 		}
+
+		if (DictOfDependencies.Count != 0)
+		{
+			var dependentPropertiesFromClass = this.GetClassDependentPropertyDeclarations().ToList();
+			dependencyPropertiesString = "\n\t" + "[Dependencies]" + "\n\t" + string.Join("\n\t",
+				dependentPropertiesFromClass.Select(x =>
+				{
+					var propName = x?.Identifier.ValueText;
+					var value = $"[[{newScriptPath}:{x?.GetLineNumber()} {propName}]]";
+
+					if(!DictOfDependencies.TryGetValue(propName!, out var child))
+						return value;
+
+					var scriptPath = useVSCodePaths ? HierarchyHelpers.GetVSCodePath(child.FullScriptPath) : HierarchyHelpers.GetPathWithDepth(child.ScriptPath, depth);
+
+					return $"{value} - [[{scriptPath} Script]]";
+				})
+			);
+		}
 		
 		var fileType = hasScript ? "Script" : "Scene";
 
@@ -289,7 +293,7 @@ public abstract class BaseHierarchy(GenerationData data)
 		$$"""
 
 		class {{Name}} {{spotCharacter}} {
-			[[{{newScriptPath}} {{fileType}}File]]{{interfacePropertiesString}}{{interfaceMethodsString}}{{externalChildrenString}}
+			[[{{newScriptPath}} {{fileType}}File]]{{dependencyPropertiesString}}{{interfacePropertiesString}}{{interfaceMethodsString}}{{externalChildrenString}}
 		}
 
 		""";
