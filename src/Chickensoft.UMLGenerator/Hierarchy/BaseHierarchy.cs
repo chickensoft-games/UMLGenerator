@@ -147,7 +147,7 @@ public abstract class BaseHierarchy(GenerationData data)
 				.Where(x => x.DictOfDependants.Any())
 				.Select(node =>
 			{
-				var relationships = (node as NodeHierarchy)?
+				var relationships = node
 					.DictOfDependants
 					.Select(dependant =>
 						$"{node.Name}::ScriptFile -> {dependant.Value.Name}::ScriptFile : \"Depends On\""
