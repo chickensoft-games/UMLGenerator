@@ -13,6 +13,8 @@ World - [[../../World/World.cs Script]]
 	
 class World  {
 	[[../../World/World.cs ScriptFile]]
+	[Dependencies]
+	[[../../World/World.cs:19 GameRepo]] - [[../../TestCases/HasDependency/Domain/GameRepo.cs Script]]
 }
 
 	
@@ -26,7 +28,6 @@ class GameRepo  {
 
 	Game::World --> World
 	Game::GameRepo --> GameRepo
-	World::ScriptFile -> GameRepo::ScriptFile : "Depends On"
 }
 
 @enduml
