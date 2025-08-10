@@ -12,9 +12,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 public abstract class BaseHierarchy(GenerationData data)
 {
+	private Dictionary<string, BaseHierarchy> _dictOfDependants = [];
 	private Dictionary<string, BaseHierarchy> _dictOfChildren = [];
 	private Dictionary<string, BaseHierarchy> _dictOfParents = [];
-	
+
+	public IReadOnlyDictionary<string, BaseHierarchy> DictOfDependants => _dictOfDependants;
 	public IReadOnlyDictionary<string, BaseHierarchy> DictOfChildren => _dictOfChildren;
 	public IReadOnlyDictionary<string, BaseHierarchy> DictOfParents => _dictOfParents;
 	
@@ -46,6 +48,16 @@ public abstract class BaseHierarchy(GenerationData data)
 			childNodeHierarchy.AddParent(this);
 		}
 
+		var dependantDeclarations = this.GetSyntaxContextForDependantPropertyDeclarations(data.SyntaxContexts);
+		foreach (var ctx in dependantDeclarations)
+		{
+			var typeName = Path.GetFileNameWithoutExtension(ctx.SemanticModel.SyntaxTree.FilePath);
+			if (!nodeHierarchyList.TryGetValue(typeName, out var childNodeHierarchy))
+				continue;
+
+			AddDependant(childNodeHierarchy);
+		}
+
 		var parameterList = TypeSyntax?.ParameterList?.Parameters ?? Enumerable.Empty<ParameterSyntax>();
 		foreach (var ctx in parameterList)
 		{
@@ -61,12 +73,21 @@ public abstract class BaseHierarchy(GenerationData data)
 		}
 	}
 
+	internal void AddDependant(BaseHierarchy node)
+	{
+		if(!_dictOfDependants.ContainsKey(node.Name))
+			_dictOfDependants.Add(node.Name, node);
+		else
+			Console.WriteLine($"Found duplicate dependant {node.Name} in {Name}");
+	}
+
+
 	internal void AddChild(BaseHierarchy node)
 	{
 		if(!_dictOfChildren.ContainsKey(node.Name))
 			_dictOfChildren.Add(node.Name, node);
 		else
-			Console.WriteLine($"Found duplicate {node.Name} in {Name}");
+			Console.WriteLine($"Found duplicate child {node.Name} in {Name}");
 	}
 
 	internal void AddParent(BaseHierarchy node, Node? nodeDefinition = null)
@@ -81,7 +102,7 @@ public abstract class BaseHierarchy(GenerationData data)
 			}
 		}
 		else
-			Console.WriteLine($"Found duplicate {node.Name} in {Name}");
+			Console.WriteLine($"Found duplicate parent {node.Name} in {Name}");
 	}
 	
 	internal string GetDiagram(int depth, bool useVSCodePaths)
@@ -90,6 +111,7 @@ public abstract class BaseHierarchy(GenerationData data)
 		
 		var childrenToDraw = DictOfChildren.Values
 			.Where(x => x.DictOfChildren.Count != 0 ||
+			            x.DictOfDependants.Count != 0 ||
 			            x.GetInterfacePropertyDeclarations().Any() ||
 			            x.GetInterfaceMethodDeclarations().Any() ||
 						!properties.Values.Contains(x)
@@ -120,6 +142,21 @@ public abstract class BaseHierarchy(GenerationData data)
 			})
 		);
 
+		var dependantRelationships = string.Join("\n\t",
+			childrenToDraw
+				.Where(x => x.DictOfDependants.Any())
+				.Select(node =>
+			{
+				var relationships = (node as NodeHierarchy)?
+					.DictOfDependants
+					.Select(dependant =>
+						$"{node.Name}::ScriptFile -> {dependant.Value.Name}::ScriptFile : \"Depends On\""
+					);
+				var joinedRelationships = string.Join("\n\t", relationships);
+				return joinedRelationships;
+			})
+		);
+
 		var packageType = this switch
 		{
 			TypeHierarchy => "Type",
@@ -134,6 +171,7 @@ public abstract class BaseHierarchy(GenerationData data)
 			  	{{typeDefinition}}
 			  	{{childrenDefinitions}}
 			  	{{childrenRelationships}}
+			  	{{dependantRelationships}}
 			  }
 
 			  """;

@@ -64,6 +64,42 @@ public static class HierarchyHelpers
 	}
 
 	/// <summary>
+	/// Returns all SyntaxContexts for properties which do have a Dependency attribute
+	/// </summary>
+	/// <returns></returns>
+	public static IList<GeneratorSyntaxContext> GetSyntaxContextForDependantPropertyDeclarations(this BaseHierarchy hierarchy, IEnumerable<GeneratorSyntaxContext> allSyntaxContexts)
+	{
+		var typeSyntax = hierarchy.TypeSyntax;
+		if (typeSyntax == null)
+			return ImmutableList<GeneratorSyntaxContext>.Empty;
+
+		var allSyntaxContextList = allSyntaxContexts.ToImmutableList();
+		var listOfDependantContexts = new List<GeneratorSyntaxContext>();
+
+		var properties = typeSyntax
+			.Members.OfType<PropertyDeclarationSyntax>()
+			.Where(x =>
+				x.AttributeLists.SelectMany(x => x.Attributes)
+					.Any(x => x.Name.ToString() == "Dependency"));
+
+		foreach (var property in properties)
+		{
+			var type = property.Type.ToString();
+			var childContexts = allSyntaxContextList
+				.Where(x =>
+				{
+					var typeSyntax = x.Node as TypeDeclarationSyntax;
+					var sourceFileName = typeSyntax?.Identifier.ValueText;
+					return sourceFileName == type;
+				});
+
+			listOfDependantContexts.AddRange(childContexts);
+		}
+
+		return listOfDependantContexts;
+	}
+
+	/// <summary>
 	/// Returns all SyntaxContexts for properties which don't have a Dependency attribute
 	/// </summary>
 	/// <returns></returns>

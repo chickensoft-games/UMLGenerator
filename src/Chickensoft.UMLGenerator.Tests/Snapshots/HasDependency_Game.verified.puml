@@ -1,0 +1,32 @@
+﻿@startuml
+
+package Game-Scene [[../../TestCases/HasDependency/Game.tscn]] {
+	
+class Game  {
+	[[../../Game/Game.cs ScriptFile]]
+--
+World - [[../../World/World.cs Script]]
+	[[../../Game/Game.cs:22 GameLogic]] - [[../../TestCases/HasDependency/Logic/GameLogic.cs Script]]
+	[[../../Game/Game.cs:21 GameRepo]] - [[../../TestCases/HasDependency/Domain/GameRepo.cs Script]]
+}
+
+	
+class World  {
+	[[../../World/World.cs ScriptFile]]
+}
+
+	
+class GameRepo  {
+	[[../../TestCases/HasDependency/Domain/GameRepo.cs ScriptFile]]
+--
++ [[../../TestCases/HasDependency/Domain/GameRepo.cs:15 Instantiator]]
+--
+[[../../TestCases/HasDependency/Domain/GameRepo.cs:17 CreateInstantiator()]]
+}
+
+	Game::World --> World
+	Game::GameRepo --> GameRepo
+	World::ScriptFile -> GameRepo::ScriptFile : "Depends On"
+}
+
+@enduml

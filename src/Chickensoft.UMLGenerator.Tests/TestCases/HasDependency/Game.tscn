@@ -1,0 +1,10 @@
+[gd_scene load_steps=4 format=3 uid="uid://drfg2pomukldl"]
+
+[ext_resource type="PackedScene" uid="uid://dqjk33fq44wxh" path="res://World/World.tscn" id="2_16wke"]
+[ext_resource type="Script" uid="uid://i56ibityiao0" path="res://Game/Game.cs" id="1_046cw"]
+
+[node name="Game" type="Node"]
+script = ExtResource("1_046cw")
+
+[node name="World" parent="." instance=ExtResource("2_16wke")]
+unique_name_in_owner = true
