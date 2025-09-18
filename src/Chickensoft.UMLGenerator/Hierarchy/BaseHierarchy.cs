@@ -43,6 +43,9 @@ public abstract class BaseHierarchy(GenerationData data)
 			var typeName = Path.GetFileNameWithoutExtension(ctx.SemanticModel.SyntaxTree.FilePath);
 			if (!nodeHierarchyList.TryGetValue(typeName, out var childNodeHierarchy)) 
 				continue;
+
+			if(childNodeHierarchy == this)
+				continue;
 			
 			AddChild(childNodeHierarchy);
 			childNodeHierarchy.AddParent(this);

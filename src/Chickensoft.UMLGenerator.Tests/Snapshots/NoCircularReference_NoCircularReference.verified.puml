@@ -1,0 +1,7 @@
+﻿@startuml
+
+class NoCircularReference  {
+	[[vscode://file/{ProjectDirectory}TestCases/NoCircularReference/NoCircularReference.cs ScriptFile]]
+}
+
+@enduml
