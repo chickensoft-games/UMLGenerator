@@ -9,46 +9,65 @@ using Models;
 
 public static class HierarchyHelpers
 {
-	public static bool ShouldUseVSCode(this BaseHierarchy hierarchy)
+	public static ClassDiagramAttribute GetClassDiagramAttribute(this BaseHierarchy hierarchy)
 	{
-		var attribute = hierarchy.GetClassDiagramAttribute();
-		return attribute?.ArgumentList?.Arguments.Any(arg =>
-			arg.NameEquals is { } nameEquals &&
-			nameEquals.Name.ToString() == nameof(ClassDiagramAttribute.UseVSCodePaths) &&
-			arg.Expression is LiteralExpressionSyntax { Token.ValueText: "true" }) ?? false;
+		var attribute = hierarchy.GetClassDiagramAttributeSyntax();
+		var arguments = attribute?.ArgumentList?.Arguments;
+		return new ClassDiagramAttribute()
+		{
+			UseVSCodePaths = GetAttributeBooleanValue(arguments, nameof(ClassDiagramAttribute.UseVSCodePaths)),
+			ShowAllProperties = GetAttributeBooleanValue(arguments, nameof(ClassDiagramAttribute.ShowAllProperties)),
+			ShowAllMethods = GetAttributeBooleanValue(arguments, nameof(ClassDiagramAttribute.ShowAllMethods))
+		};
 	}
 
-	public static bool HasClassDiagramAttribute(this BaseHierarchy hierarchy) => hierarchy.GetClassDiagramAttribute() != null;
-	
-	private static AttributeSyntax? GetClassDiagramAttribute(this BaseHierarchy hierarchy)
+	private static AttributeSyntax? GetClassDiagramAttributeSyntax(this BaseHierarchy hierarchy)
 	{
 		var attributeName = nameof(ClassDiagramAttribute).Replace("Attribute", "");
 		var classDiagramAttribute = hierarchy.ContextList
 			.Select(x => (x.Node as TypeDeclarationSyntax)?.AttributeLists.SelectMany(x => x.Attributes))
 			.SelectMany(x => x)
 			.FirstOrDefault(x => x.Name.ToString() == attributeName);
-		
+
 		return classDiagramAttribute;
 	}
+
+	private static bool GetAttributeBooleanValue(SeparatedSyntaxList<AttributeArgumentSyntax>? arguments, string attributeName)
+	{
+		return arguments?.Any(arg =>
+			arg.NameEquals is { } nameEquals &&
+			nameEquals.Name.ToString() == attributeName &&
+			arg.Expression is LiteralExpressionSyntax { Token.ValueText: "true" }) ?? false;
+	}
+
+	public static bool HasClassDiagramAttribute(this BaseHierarchy hierarchy) => hierarchy.GetClassDiagramAttributeSyntax() != null;
 
 	/// <summary>
 	/// This will return type properties which exist in the interface
 	/// </summary>
 	/// <returns></returns>
-	public static IEnumerable<PropertyDeclarationSyntax> GetInterfacePropertyDeclarations(this BaseHierarchy hierarchy)
+	public static IEnumerable<PropertyDeclarationSyntax> GetPropertyDeclarations(this BaseHierarchy hierarchy, bool getAllProperties)
 	{
+		if (getAllProperties && hierarchy.TypeSyntax != null)
+			return from typeMember in hierarchy.TypeSyntax.Members
+				where typeMember is PropertyDeclarationSyntax property &&
+				      property.AttributeLists.SelectMany(x => x.Attributes)
+					      .All(x => x.Name.ToString() != "Dependency")
+				orderby (typeMember as PropertyDeclarationSyntax)?.Identifier.ValueText
+				select typeMember as PropertyDeclarationSyntax;
+
 		if (hierarchy.InterfaceSyntax == null) return [];
 		return from interfaceMember in hierarchy.InterfaceSyntax.Members
-			from typeMember in hierarchy.TypeSyntax.Members
+			from typeMember in hierarchy.TypeSyntax?.Members ?? []
 			where typeMember is PropertyDeclarationSyntax property &&
 			      interfaceMember is PropertyDeclarationSyntax interfaceProperty &&
 			      property.Identifier.Value == interfaceProperty.Identifier.Value
-			orderby (typeMember as PropertyDeclarationSyntax).Identifier.ValueText
+			orderby (typeMember as PropertyDeclarationSyntax)?.Identifier.ValueText
 			select typeMember as PropertyDeclarationSyntax;
 	}
 
 	/// <summary>
-	/// This will return type properties which exist in the interface
+	/// This will return properties with the [Dependency] attribute which exist in the class
 	/// </summary>
 	/// <returns></returns>
 	public static IEnumerable<PropertyDeclarationSyntax> GetClassDependentPropertyDeclarations(this BaseHierarchy hierarchy)
@@ -58,7 +77,7 @@ public static class HierarchyHelpers
 			where typeMember is PropertyDeclarationSyntax property &&
 			      property.AttributeLists.SelectMany(x => x.Attributes)
 				      .Any(x => x.Name.ToString() == "Dependency")
-			orderby (typeMember as PropertyDeclarationSyntax).Identifier.ValueText
+			orderby (typeMember as PropertyDeclarationSyntax)?.Identifier.ValueText
 			select typeMember as PropertyDeclarationSyntax;
 	}
 	
@@ -66,15 +85,18 @@ public static class HierarchyHelpers
 	/// This will return type methods which exist in the interface
 	/// </summary>
 	/// <returns></returns>
-	public static IEnumerable<MethodDeclarationSyntax> GetInterfaceMethodDeclarations(this BaseHierarchy hierarchy)
+	public static IEnumerable<MethodDeclarationSyntax> GetMethodDeclarations(this BaseHierarchy hierarchy, bool getAllMethods)
 	{
+		if (getAllMethods && hierarchy.TypeSyntax != null)
+			return hierarchy.TypeSyntax.Members.OfType<MethodDeclarationSyntax>();
+
 		if (hierarchy.InterfaceSyntax == null) return [];
 		return from interfaceMember in hierarchy.InterfaceSyntax!.Members
-			from typeMember in hierarchy.TypeSyntax.Members
+			from typeMember in hierarchy.TypeSyntax?.Members ?? []
 			where typeMember is MethodDeclarationSyntax typeMethod &&
 			      interfaceMember is MethodDeclarationSyntax interfaceMethod &&
 			      typeMethod.Identifier.Value == interfaceMethod.Identifier.Value
-			orderby (typeMember as MethodDeclarationSyntax).Identifier.ValueText
+			orderby (typeMember as MethodDeclarationSyntax)?.Identifier.ValueText
 			select typeMember as MethodDeclarationSyntax;
 	}
 

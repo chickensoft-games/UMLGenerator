@@ -108,26 +108,26 @@ public abstract class BaseHierarchy(GenerationData data)
 			Console.WriteLine($"Found duplicate parent {node.Name} in {Name}");
 	}
 	
-	internal string GetDiagram(int depth, bool useVSCodePaths)
+	internal string GetDiagram(int depth, ClassDiagramAttribute attribute)
 	{
-		var typeDefinition = GetTypeDefinition(depth, useVSCodePaths, out var properties);
+		var typeDefinition = GetTypeDefinition(depth, attribute, out var properties);
 		
 		var childrenToDraw = DictOfChildren.Values
 			.Where(x => x.DictOfChildren.Count != 0 ||
 			            x.DictOfDependencies.Count != 0 ||
-			            x.GetInterfacePropertyDeclarations().Any() ||
-			            x.GetInterfaceMethodDeclarations().Any() ||
+			            x.GetPropertyDeclarations(attribute.ShowAllProperties).Any() ||
+			            x.GetMethodDeclarations(attribute.ShowAllMethods).Any() ||
 						!properties.Values.Contains(x)
 			).ToList();
 		
 		if (childrenToDraw.Count == 0)
 			return typeDefinition;
 		
-		var newFilePath = useVSCodePaths ? HierarchyHelpers.GetVSCodePath(FullFilePath) : HierarchyHelpers.GetPathWithDepth(FilePath, depth);
+		var newFilePath = attribute.UseVSCodePaths ? HierarchyHelpers.GetVSCodePath(FullFilePath) : HierarchyHelpers.GetPathWithDepth(FilePath, depth);
 		
 		var childrenDefinitions = string.Join("\n\t",
 			childrenToDraw.Select(x =>
-				x.GetDiagram(depth, useVSCodePaths)
+				x.GetDiagram(depth, attribute)
 			)
 		);
 
@@ -164,17 +164,18 @@ public abstract class BaseHierarchy(GenerationData data)
 			  """;
 	}
 
-	private string GetTypeDefinition(int depth, bool useVSCodePaths, out IDictionary<string, BaseHierarchy> children)
+	private string GetTypeDefinition(int depth, ClassDiagramAttribute classDiagramAttribute, out IDictionary<string, BaseHierarchy> children)
 	{
+		var useVsCodePaths = classDiagramAttribute.UseVSCodePaths;
 		children = ImmutableDictionary<string, BaseHierarchy>.Empty;
 		
 		var interfaceMethodsString = string.Empty;
 		var dependencyPropertiesString = string.Empty;
-		var interfacePropertiesString = string.Empty;
+		var propertiesString = string.Empty;
 
-		var newScriptPath = this.GetScriptPath(useVSCodePaths, depth, out var hasScript);
+		var newScriptPath = this.GetScriptPath(useVsCodePaths, depth, out var hasScript);
 		
-		var propertiesFromInterface = this.GetInterfacePropertyDeclarations().ToList();
+		var propertyDeclarations = this.GetPropertyDeclarations(classDiagramAttribute.ShowAllProperties).ToList();
 		var allProperties = TypeSyntax?.Members.OfType<PropertyDeclarationSyntax>() ?? [];
 			
 		var props = 
@@ -194,7 +195,7 @@ public abstract class BaseHierarchy(GenerationData data)
 		var insideProp = children;
 			
 		var externalChildrenString = string.Join("\n\t",
-			children.Where(x => propertiesFromInterface
+			children.Where(x =>  propertyDeclarations
 					.All(y => y.Identifier.ValueText != x.Key))
 				.Select(x =>
 				{
@@ -202,13 +203,13 @@ public abstract class BaseHierarchy(GenerationData data)
 					var propName = x.Key;
 					var value = string.Empty;
 
-					var scriptPath = x.Value.GetScriptPath(useVSCodePaths, depth, out var hasScript);
-					
+					var scriptPath = x.Value.GetScriptPath(useVsCodePaths, depth, out var hasScript);
+
 					var propertyDeclarationSyntax = TypeSyntax?
 						.Members
 						.OfType<PropertyDeclarationSyntax>()
 						.FirstOrDefault(x => x.Identifier.ValueText == propName);
-					
+
 					//Get direct link to property declaration
 					if (propertyDeclarationSyntax != null)
 						value = $"[[{newScriptPath}:{propertyDeclarationSyntax.GetLineNumber()} {propName}]]";
@@ -219,50 +220,60 @@ public abstract class BaseHierarchy(GenerationData data)
 							.AllChildren
 							.FirstOrDefault(node => node.Type == propName)?.Name;
 					}
-					
+
 					if(string.IsNullOrEmpty(value))
 						value = propName;
-					
+
 					var fileType = hasScript ? "Script" : "Scene";
-					
+
 					if(!string.IsNullOrWhiteSpace(scriptPath))
 						scriptDefinitions = $" - [[{scriptPath} {fileType}]]";
-					
+
 					return value + scriptDefinitions;
 				})
 		);
-		
+
 		if (!string.IsNullOrWhiteSpace(externalChildrenString))
 			externalChildrenString = "\n--\n" + externalChildrenString;
-		
-		if(InterfaceSyntax != null)
+
+		if (InterfaceSyntax != null || classDiagramAttribute.ShowAllProperties)
 		{
-			interfacePropertiesString = string.Join("\n\t",
-				propertiesFromInterface.Select(x =>
+			propertiesString = string.Join("\n\t",
+				propertyDeclarations.Select(x =>
 				{
 					var propName = x?.Identifier.ValueText;
 					var value = $"+ [[{newScriptPath}:{x?.GetLineNumber()} {propName}]]";
-					
-					if(!insideProp.TryGetValue(propName!, out var child))
+
+					if (!insideProp.TryGetValue(propName!, out var child))
 						return value;
-					
-					var scriptPath = useVSCodePaths ? HierarchyHelpers.GetVSCodePath(child.FullScriptPath) : HierarchyHelpers.GetPathWithDepth(child.ScriptPath, depth);
-					
+
+					var scriptPath = useVsCodePaths
+						? HierarchyHelpers.GetVSCodePath(child.FullScriptPath)
+						: HierarchyHelpers.GetPathWithDepth(child.ScriptPath, depth);
+
 					var scriptDefinitions = $" - [[{scriptPath} Script]]";
-					
+
 					return value + scriptDefinitions;
 				})
 			);
 
-			if (!string.IsNullOrWhiteSpace(interfacePropertiesString))
-				interfacePropertiesString = "\n--\n" + interfacePropertiesString;
+			if (!string.IsNullOrWhiteSpace(propertiesString))
+				propertiesString = "\n--\n" + propertiesString;
+		}
 
-			var methodsFromInterface = this.GetInterfaceMethodDeclarations();
+		if(InterfaceSyntax != null || classDiagramAttribute.ShowAllMethods)
+		{
+			var methodString = this.GetMethodDeclarations(classDiagramAttribute.ShowAllMethods);
 
 			interfaceMethodsString = string.Join("\n\t",
-				methodsFromInterface.Select(x =>
-					$"[[{newScriptPath}:{x?.GetLineNumber()} {x?.Identifier.Value}()]]"
-				)
+				methodString.Select(x =>
+				{
+					var expIntIdent = string.Empty;
+					if (x?.ExplicitInterfaceSpecifier?.Name != null)
+						expIntIdent = x?.ExplicitInterfaceSpecifier?.Name + ".";
+
+					return $"[[{newScriptPath}:{x?.GetLineNumber()} {expIntIdent}{x?.Identifier.Value}()]]";
+				})
 			);
 
 			if (!string.IsNullOrWhiteSpace(interfaceMethodsString))
@@ -281,7 +292,7 @@ public abstract class BaseHierarchy(GenerationData data)
 					if(!DictOfDependencies.TryGetValue(propName!, out var child))
 						return value;
 
-					var scriptPath = useVSCodePaths ? HierarchyHelpers.GetVSCodePath(child.FullScriptPath) : HierarchyHelpers.GetPathWithDepth(child.ScriptPath, depth);
+					var scriptPath = useVsCodePaths ? HierarchyHelpers.GetVSCodePath(child.FullScriptPath) : HierarchyHelpers.GetPathWithDepth(child.ScriptPath, depth);
 
 					return $"{value} - [[{scriptPath} Script]]";
 				})
@@ -296,7 +307,7 @@ public abstract class BaseHierarchy(GenerationData data)
 		$$"""
 
 		class {{Name}} {{spotCharacter}} {
-			[[{{newScriptPath}} {{fileType}}File]]{{dependencyPropertiesString}}{{interfacePropertiesString}}{{interfaceMethodsString}}{{externalChildrenString}}
+			[[{{newScriptPath}} {{fileType}}File]]{{dependencyPropertiesString}}{{propertiesString}}{{interfaceMethodsString}}{{externalChildrenString}}
 		}
 
 		""";

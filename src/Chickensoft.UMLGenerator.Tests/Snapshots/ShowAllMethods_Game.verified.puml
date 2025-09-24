@@ -1,0 +1,39 @@
+﻿@startuml
+
+package Game-Scene [[../../TestCases/ShowAllMethods/Game.tscn]] {
+	
+class Game  {
+	[[../../Game/Game.cs ScriptFile]]
+--
+[[../../Game/Game.cs:15 IProvide<IGameRepo>.Value()]]
+	[[../../Game/Game.cs:29 _Notification()]]
+	[[../../Game/Game.cs:31 Setup()]]
+	[[../../Game/Game.cs:40 OnResolved()]]
+	[[../../Game/Game.cs:47 OnExitTree()]]
+--
+[[../../Game/Game.cs:22 GameLogic]] - [[../../TestCases/ShowAllMethods/Logic/GameLogic.cs Script]]
+	[[../../Game/Game.cs:21 GameRepo]] - [[../../TestCases/ShowAllMethods/Domain/GameRepo.cs Script]]
+}
+
+	
+class GameRepo  {
+	[[../../TestCases/ShowAllMethods/Domain/GameRepo.cs ScriptFile]]
+--
++ [[../../TestCases/ShowAllMethods/Domain/GameRepo.cs:15 Instantiator]]
+--
+[[../../TestCases/ShowAllMethods/Domain/GameRepo.cs:17 CreateInstantiator()]]
+	[[../../TestCases/ShowAllMethods/Domain/GameRepo.cs:24 Dispose()]]
+}
+
+	
+class GameLogic  {
+	[[../../TestCases/ShowAllMethods/Logic/GameLogic.cs ScriptFile]]
+--
+[[../../TestCases/ShowAllMethods/Logic/GameLogic.cs:12 GetInitialState()]]
+}
+
+	Game::GameRepo --> GameRepo
+	Game::GameLogic --> GameLogic
+}
+
+@enduml

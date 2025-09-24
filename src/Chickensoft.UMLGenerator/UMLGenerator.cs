@@ -96,12 +96,12 @@ public class UMLGenerator : IIncrementalGenerator
 			var filePath = Path.Combine(Path.GetDirectoryName(node.FilePath) ?? string.Empty, fileName);
 
 			var depth = filePath.Split('\\', '/').Length - 1;
-			var useVSCodePaths = node.ShouldUseVSCode();
-			
+			var classDiagramAttribute = node.GetClassDiagramAttribute();
+
 			var source =
 			$"""
 			@startuml
-			{node.GetDiagram(depth, useVSCodePaths)}
+			{node.GetDiagram(depth, classDiagramAttribute)}
 			@enduml
 			""";
 			var destFile = Path.Combine(data.ProjectDir!, filePath);
