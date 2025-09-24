@@ -13,6 +13,12 @@ using VerifyTests;
 using VerifyXunit;
 using Xunit;
 
+public class TestDirectory
+{
+	public required string DirPath { get; init; }
+	public override string ToString() => Path.GetFileName(DirPath);
+}
+
 public class SnapshotTests
 {
 	static SnapshotTests()
@@ -20,12 +26,13 @@ public class SnapshotTests
 		FileExtensions.AddTextExtension("puml");
 	}
 
-	public static IEnumerable<object[]> TestFolderPaths = 
-		Directory.GetDirectories(CurrentDir("./TestCases")).Select(x => new object[] {x});
+	public static IEnumerable<object[]> TestFolderPaths =
+		Directory.GetDirectories(CurrentDir("./TestCases")).Select(x => new []{new TestDirectory { DirPath = x }});
 
 	[Theory, MemberData(nameof(TestFolderPaths))]
-	public async Task VerifyTestCases(string testFolderPath)
+	public async Task VerifyTestCases(TestDirectory testDir)
 	{
+		var testFolderPath = testDir.DirPath;
 		var additionalTexts = new List<AdditionalText>();
 		var csharpFiles = new List<SyntaxTree>();
 		
