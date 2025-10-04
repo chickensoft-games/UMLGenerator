@@ -308,10 +308,10 @@ public abstract class BaseHierarchy(GenerationData data)
 			dependencyPropertiesString = "\n\t" + "[Dependencies]" + "\n\t" + string.Join("\n\t",
 				dependentPropertiesFromClass.Select(x =>
 				{
-					var propName = x?.Identifier.ValueText;
+					var propName = x?.Type.ToString();
 					var value = $"[[{newScriptPath}:{x?.GetLineNumber()} {propName}]]";
 
-					if(!DictOfDependencies.TryGetValue(propName!, out var child))
+					if(!DictOfDependencies.TryGetValue(propName!, out var child) && !DictOfDependencies.TryGetValue(propName!.Substring(1), out child))
 						return value;
 
 					var scriptPath = useVsCodePaths ? HierarchyHelpers.GetVSCodePath(child.FullScriptPath) : HierarchyHelpers.GetPathWithDepth(child.ScriptPath, depth);
@@ -327,10 +327,10 @@ public abstract class BaseHierarchy(GenerationData data)
 			provisionMethodsString = "\n\t" + "[Provisions]" + "\n\t" + string.Join("\n\t",
 				provisionMethodsFromClass.Select(x =>
 				{
-					var propName = (x.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.TypeArgumentList.Arguments[0].ToString();
-					var value = $"[[{newScriptPath}:{x.GetLineNumber()} {propName}]]";
+					var provisionName = (x.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.TypeArgumentList.Arguments[0].ToString();
+					var value = $"[[{newScriptPath}:{x.GetLineNumber()} {provisionName}]]";
 
-					if(!DictOfProvisions.TryGetValue(propName!, out var child))
+					if(!DictOfProvisions.TryGetValue(provisionName!, out var child) && !DictOfProvisions.TryGetValue(provisionName!.Substring(1), out child))
 						return value;
 
 					var scriptPath = useVsCodePaths ? HierarchyHelpers.GetVSCodePath(child.FullScriptPath) : HierarchyHelpers.GetPathWithDepth(child.ScriptPath, depth);

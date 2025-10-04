@@ -5,7 +5,7 @@ package Game-Scene [[../../TestCases/ShowAllMethods/Game.tscn]] {
 class Game  {
 	[[../../Game/Game.cs ScriptFile]]
 	[Provisions]
-	[[../../Game/Game.cs:15 IGameRepo]]
+	[[../../Game/Game.cs:15 IGameRepo]] - [[../../TestCases/ShowAllMethods/Domain/GameRepo.cs Script]]
 --
 [[../../Game/Game.cs:29 _Notification()]]
 	[[../../Game/Game.cs:31 Setup()]]
