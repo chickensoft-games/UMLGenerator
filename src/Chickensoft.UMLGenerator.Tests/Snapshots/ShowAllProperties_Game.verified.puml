@@ -4,6 +4,8 @@ package Game-Scene [[../../TestCases/ShowAllProperties/Game.tscn]] {
 	
 class Game  {
 	[[../../Game/Game.cs ScriptFile]]
+	[Provisions]
+	[[../../Game/Game.cs:15 IGameRepo]]
 --
 + [[../../Game/Game.cs:23 AppBinding]]
 	+ [[../../Game/Game.cs:22 GameLogic]] - [[../../TestCases/ShowAllProperties/Logic/GameLogic.cs Script]]

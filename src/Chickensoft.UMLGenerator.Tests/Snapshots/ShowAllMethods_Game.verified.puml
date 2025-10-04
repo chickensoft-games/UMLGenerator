@@ -4,9 +4,10 @@ package Game-Scene [[../../TestCases/ShowAllMethods/Game.tscn]] {
 	
 class Game  {
 	[[../../Game/Game.cs ScriptFile]]
+	[Provisions]
+	[[../../Game/Game.cs:15 IGameRepo]]
 --
-[[../../Game/Game.cs:15 IProvide<IGameRepo>.Value()]]
-	[[../../Game/Game.cs:29 _Notification()]]
+[[../../Game/Game.cs:29 _Notification()]]
 	[[../../Game/Game.cs:31 Setup()]]
 	[[../../Game/Game.cs:40 OnResolved()]]
 	[[../../Game/Game.cs:47 OnExitTree()]]

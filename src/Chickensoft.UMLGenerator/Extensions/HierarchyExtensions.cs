@@ -88,7 +88,8 @@ public static class HierarchyHelpers
 	public static IEnumerable<MethodDeclarationSyntax> GetMethodDeclarations(this BaseHierarchy hierarchy, bool getAllMethods)
 	{
 		if (getAllMethods && hierarchy.TypeSyntax != null)
-			return hierarchy.TypeSyntax.Members.OfType<MethodDeclarationSyntax>();
+			return hierarchy.TypeSyntax.Members.OfType<MethodDeclarationSyntax>()
+				.Where(x => (x.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.Identifier.Text != "IProvide");
 
 		if (hierarchy.InterfaceSyntax == null) return [];
 		return from interfaceMember in hierarchy.InterfaceSyntax!.Members
@@ -96,6 +97,20 @@ public static class HierarchyHelpers
 			where typeMember is MethodDeclarationSyntax typeMethod &&
 			      interfaceMember is MethodDeclarationSyntax interfaceMethod &&
 			      typeMethod.Identifier.Value == interfaceMethod.Identifier.Value
+			orderby (typeMember as MethodDeclarationSyntax)?.Identifier.ValueText
+			select typeMember as MethodDeclarationSyntax;
+	}
+
+	/// <summary>
+	/// This will return properties with the [Dependency] attribute which exist in the class
+	/// </summary>
+	/// <returns></returns>
+	public static IEnumerable<MethodDeclarationSyntax> GetProvisionMethodDeclarations(this BaseHierarchy hierarchy)
+	{
+		if (hierarchy.TypeSyntax == null) return [];
+		return from typeMember in hierarchy.TypeSyntax.Members
+			where typeMember is MethodDeclarationSyntax method &&
+			      (method.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.Identifier.Text == "IProvide"
 			orderby (typeMember as MethodDeclarationSyntax)?.Identifier.ValueText
 			select typeMember as MethodDeclarationSyntax;
 	}
@@ -122,6 +137,40 @@ public static class HierarchyHelpers
 		foreach (var property in properties)
 		{
 			var type = property.Type.ToString();
+			var childContexts = allSyntaxContextList
+				.Where(x =>
+				{
+					var typeSyntax = x.Node as TypeDeclarationSyntax;
+					var sourceFileName = typeSyntax?.Identifier.ValueText;
+					return sourceFileName == type;
+				});
+
+			listOfDependentContexts.AddRange(childContexts);
+		}
+
+		return listOfDependentContexts;
+	}
+
+	/// <summary>
+	/// Returns all SyntaxContexts for methods which are arguments of the IProvide interface
+	/// </summary>
+	/// <returns></returns>
+	public static IList<GeneratorSyntaxContext> GetSyntaxContextForProvisionedMethodDeclarations(this BaseHierarchy hierarchy, IEnumerable<GeneratorSyntaxContext> allSyntaxContexts)
+	{
+		var typeSyntax = hierarchy.TypeSyntax;
+		if (typeSyntax == null)
+			return ImmutableList<GeneratorSyntaxContext>.Empty;
+
+		var allSyntaxContextList = allSyntaxContexts.ToImmutableList();
+		var listOfDependentContexts = new List<GeneratorSyntaxContext>();
+
+		var methods = typeSyntax
+			.Members.OfType<MethodDeclarationSyntax>()
+			.Where(x => (x.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.Identifier.Text == "IProvide").ToList();
+
+		foreach (var method in methods)
+		{
+			var type = (method.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.TypeArgumentList.Arguments[0].ToString();
 			var childContexts = allSyntaxContextList
 				.Where(x =>
 				{
