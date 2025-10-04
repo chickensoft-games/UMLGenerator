@@ -43,7 +43,7 @@ public class UMLGenerator : IIncrementalGenerator
 				{
 					TscnFiles = x.Left.Left,
 					SyntaxContexts =  x.Left.Right,
-					ProjectDir = x.Right
+					ProjectDir = x.Right.NormalizePath()
 				}
 			);
 

@@ -35,6 +35,12 @@ public class SnapshotTests
 		var testFolderPath = testDir.DirPath;
 		var additionalTexts = new List<AdditionalText>();
 		var csharpFiles = new List<SyntaxTree>();
+
+		var exitingPumls = Directory.GetFiles(testFolderPath, "*.g.puml", SearchOption.AllDirectories);
+		foreach (var puml in exitingPumls)
+		{
+			File.Delete(puml);
+		}
 		
 		foreach (var filePath in Directory.GetFiles(testFolderPath, "*.cs", SearchOption.AllDirectories))
 		{
@@ -72,7 +78,7 @@ public class SnapshotTests
 			nameof(SnapshotTests),
 			syntaxTrees: csharpFiles);
 
-		driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics);
+		driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
 
 		var generatedPumls = Directory.GetFiles(testFolderPath, "*.g.puml", SearchOption.AllDirectories);
 		
