@@ -1,5 +1,6 @@
 namespace Chickensoft.UMLGenerator.Helpers;
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -121,34 +122,22 @@ public static class HierarchyHelpers
 	/// <returns></returns>
 	public static IList<GeneratorSyntaxContext> GetSyntaxContextForDependentPropertyDeclarations(this BaseHierarchy hierarchy, IEnumerable<GeneratorSyntaxContext> allSyntaxContexts)
 	{
-		var typeSyntax = hierarchy.TypeSyntax;
-		if (typeSyntax == null)
-			return ImmutableList<GeneratorSyntaxContext>.Empty;
-
-		var allSyntaxContextList = allSyntaxContexts.ToImmutableList();
-		var listOfDependentContexts = new List<GeneratorSyntaxContext>();
-
-		var properties = typeSyntax
-			.Members.OfType<PropertyDeclarationSyntax>()
-			.Where(x =>
-				x.AttributeLists.SelectMany(x => x.Attributes)
-					.Any(x => x.Name.ToString() == "Dependency"));
-
-		foreach (var property in properties)
-		{
-			var type = property.Type.ToString();
-			var childContexts = allSyntaxContextList
-				.Where(x =>
-				{
-					var typeSyntax = x.Node as TypeDeclarationSyntax;
-					var sourceFileName = typeSyntax?.Identifier.ValueText;
-					return sourceFileName == type;
-				});
-
-			listOfDependentContexts.AddRange(childContexts);
-		}
-
-		return listOfDependentContexts;
+		return GetSyntaxContextForMethodDeclarations<PropertyDeclarationSyntax>(
+			hierarchy, allSyntaxContexts,
+			syntax => syntax.AttributeLists.SelectMany(x => x.Attributes)
+				.Any(x => x.Name.ToString() == "Dependency"),
+			(property, list) =>
+			{
+				var type = property.Type.ToString();
+				return list
+					.Where(x =>
+					{
+						var typeSyntax = x.Node as TypeDeclarationSyntax;
+						var sourceFileName = typeSyntax?.Identifier.ValueText;
+						return sourceFileName == type;
+					});
+			}
+		);
 	}
 
 	/// <summary>
@@ -157,34 +146,22 @@ public static class HierarchyHelpers
 	/// <returns></returns>
 	public static IList<GeneratorSyntaxContext> GetSyntaxContextForPropertyDeclarations(this BaseHierarchy hierarchy, IEnumerable<GeneratorSyntaxContext> allSyntaxContexts)
 	{
-		var typeSyntax = hierarchy.TypeSyntax;
-		if (typeSyntax == null)
-			return ImmutableList<GeneratorSyntaxContext>.Empty;
-
-		var allSyntaxContextList = allSyntaxContexts.ToImmutableList();
-		var listOfChildContexts = new List<GeneratorSyntaxContext>();
-
-		var properties = typeSyntax
-			.Members.OfType<PropertyDeclarationSyntax>()
-			.Where(x =>
-				!x.AttributeLists.SelectMany(x => x.Attributes)
-					.Any(x => x.Name.ToString() == "Dependency"));
-
-		foreach (var property in properties)
-		{
-			var type = property.Type.ToString();
-			var childContexts = allSyntaxContextList
-				.Where(x =>
-				{
-					var syntax = x.Node as TypeDeclarationSyntax;
-					var sourceFileName = syntax?.Identifier.ValueText;
-					return sourceFileName == type && !hierarchy.DictOfChildren.ContainsKey(type);
-				});
-
-			listOfChildContexts.AddRange(childContexts);
-		}
-
-		return listOfChildContexts;
+		return GetSyntaxContextForMethodDeclarations<PropertyDeclarationSyntax>(
+			hierarchy, allSyntaxContexts,
+			syntax => syntax.AttributeLists.SelectMany(x => x.Attributes)
+				.All(x => x.Name.ToString() != "Dependency"),
+			(property, list) =>
+			{
+				var type = property.Type.ToString();
+				return list
+					.Where(x =>
+					{
+						var syntax = x.Node as TypeDeclarationSyntax;
+						var sourceFileName = syntax?.Identifier.ValueText;
+						return sourceFileName == type;
+					});
+			}
+		);
 	}
 
 	/// <summary>
@@ -193,6 +170,30 @@ public static class HierarchyHelpers
 	/// <returns></returns>
 	public static IList<GeneratorSyntaxContext> GetSyntaxContextForProvisionedMethodDeclarations(this BaseHierarchy hierarchy, IEnumerable<GeneratorSyntaxContext> allSyntaxContexts)
 	{
+		return GetSyntaxContextForMethodDeclarations<MethodDeclarationSyntax>(
+			hierarchy, allSyntaxContexts,
+			syntax => (syntax.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)
+				?.Identifier.Text == "IProvide", (syntax, list) =>
+			{
+				//Since IProvide will only ever have one argument, we can just get the first one
+				var type = (syntax.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.TypeArgumentList.Arguments[0].ToString();
+				return list
+					.Where(x =>
+					{
+						var typeSyntax = x.Node as TypeDeclarationSyntax;
+						var sourceFileName = typeSyntax?.Identifier.ValueText;
+						return sourceFileName == type;
+					});
+			}
+		);
+	}
+
+	private static IList<GeneratorSyntaxContext> GetSyntaxContextForMethodDeclarations<TSyntax>(
+		this BaseHierarchy hierarchy,
+		IEnumerable<GeneratorSyntaxContext> allSyntaxContexts,
+		Func<TSyntax, bool> memberFilter,
+		Func<TSyntax, ImmutableList<GeneratorSyntaxContext>, IEnumerable<GeneratorSyntaxContext>> syntaxFilter) where TSyntax : MemberDeclarationSyntax
+	{
 		var typeSyntax = hierarchy.TypeSyntax;
 		if (typeSyntax == null)
 			return ImmutableList<GeneratorSyntaxContext>.Empty;
@@ -200,21 +201,15 @@ public static class HierarchyHelpers
 		var allSyntaxContextList = allSyntaxContexts.ToImmutableList();
 		var listOfDependentContexts = new List<GeneratorSyntaxContext>();
 
-		var methods = typeSyntax
-			.Members.OfType<MethodDeclarationSyntax>()
-			.Where(x => (x.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.Identifier.Text == "IProvide").ToList();
+		//Find all members that match the filter
+		var syntaxes = typeSyntax
+			.Members.OfType<TSyntax>()
+			.Where(memberFilter).ToList();
 
-		foreach (var method in methods)
+		foreach (var method in syntaxes)
 		{
-			var type = (method.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.TypeArgumentList.Arguments[0].ToString();
-			var childContexts = allSyntaxContextList
-				.Where(x =>
-				{
-					var typeSyntax = x.Node as TypeDeclarationSyntax;
-					var sourceFileName = typeSyntax?.Identifier.ValueText;
-					return sourceFileName == type;
-				});
-
+			//For all members that match the filter, find all syntax contexts that match the filter
+			var childContexts = syntaxFilter(method, allSyntaxContextList);
 			listOfDependentContexts.AddRange(childContexts);
 		}
 
