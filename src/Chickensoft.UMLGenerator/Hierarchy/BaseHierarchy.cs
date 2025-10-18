@@ -33,8 +33,6 @@ public abstract class BaseHierarchy(GenerationData data)
 	public abstract string FullFilePath { get; }
 	public string ScriptPath => FullScriptPath.Replace($"{data.ProjectDir}", "");
 	public abstract string FullScriptPath { get; }
-	public string ScriptPathFromParent => FullScriptPathFromParent?.Replace($"{data.ProjectDir}", "") ?? "";
-	public string FullScriptPathFromParent { get; private set; } = null!;
 	public string Name => Path.GetFileNameWithoutExtension(FilePath);
 	
 	public virtual void GenerateHierarchy(IDictionary<string, BaseHierarchy> nodeHierarchyList)
@@ -113,16 +111,11 @@ public abstract class BaseHierarchy(GenerationData data)
 			Console.WriteLine($"Found duplicate child {node.Name} in {Name}");
 	}
 
-	internal void AddParent(BaseHierarchy node, Node? nodeDefinition = null)
+	internal void AddParent(BaseHierarchy node)
 	{
 		if (!_dictOfParents.ContainsKey(node.Name))
 		{
 			_dictOfParents.Add(node.Name, node);
-			if (!string.IsNullOrEmpty(nodeDefinition?.Script?.Path))
-			{
-				var scriptPath = nodeDefinition!.Script!.Path.Replace("res://", "");;
-				FullScriptPathFromParent = data.ProjectDir + scriptPath;
-			}
 		}
 		else
 			Console.WriteLine($"Found duplicate parent {node.Name} in {Name}");

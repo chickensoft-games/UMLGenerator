@@ -162,22 +162,14 @@ public static class HierarchyExtensions
 	
 	public static string GetScriptPath(this BaseHierarchy hierarchy, bool useVSCodePaths, int depth, out bool hasScript)
 	{
-		hasScript = !string.IsNullOrEmpty(hierarchy.ScriptPath) || !string.IsNullOrEmpty(hierarchy.ScriptPathFromParent);
+		hasScript = !string.IsNullOrEmpty(hierarchy.ScriptPath);
 		string filePath;
 		string fullFilePath;
 		
 		if (hasScript)
 		{
-			if (!string.IsNullOrEmpty(hierarchy.ScriptPath))
-			{
-				filePath = hierarchy.ScriptPath;
-				fullFilePath = hierarchy.FullScriptPath;
-			}
-			else
-			{
-				filePath = hierarchy.ScriptPathFromParent;
-				fullFilePath = hierarchy.FullScriptPathFromParent;
-			}
+			filePath = hierarchy.ScriptPath;
+			fullFilePath = hierarchy.FullScriptPath;
 		}
 		else
 		{

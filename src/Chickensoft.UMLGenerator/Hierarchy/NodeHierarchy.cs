@@ -20,7 +20,7 @@ public class NodeHierarchy(TscnListener listener, AdditionalText additionalText,
 					continue;
 
 				AddChild(childNodeHierarchy);
-				childNodeHierarchy.AddParent(this, nodeDefinition);
+				childNodeHierarchy.AddParent(this);
 			}
 
 		base.GenerateHierarchy(nodeHierarchyList);
