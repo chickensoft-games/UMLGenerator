@@ -126,17 +126,7 @@ public static class HierarchyHelpers
 			hierarchy, allSyntaxContexts,
 			syntax => syntax.AttributeLists.SelectMany(x => x.Attributes)
 				.Any(x => x.Name.ToString() == "Dependency"),
-			(property, list) =>
-			{
-				var type = property.Type.ToString();
-				return list
-					.Where(x =>
-					{
-						var typeSyntax = x.Node as TypeDeclarationSyntax;
-						var sourceFileName = typeSyntax?.Identifier.ValueText;
-						return sourceFileName == type;
-					});
-			}
+			(property) => property.Type.ToString()
 		);
 	}
 
@@ -150,18 +140,7 @@ public static class HierarchyHelpers
 			hierarchy, allSyntaxContexts,
 			syntax => syntax.AttributeLists.SelectMany(x => x.Attributes)
 				.All(x => x.Name.ToString() != "Dependency"),
-			(property, list) =>
-			{
-				var type = property.Type.ToString();
-				return list
-					.Where(x =>
-					{
-						var syntax = x.Node as TypeDeclarationSyntax;
-						var sourceFileName = syntax?.Identifier.ValueText;
-						return sourceFileName == type;
-					});
-			}
-		);
+			(property) => property.Type.ToString());
 	}
 
 	/// <summary>
@@ -173,43 +152,41 @@ public static class HierarchyHelpers
 		return GetSyntaxContextForMethodDeclarations<MethodDeclarationSyntax>(
 			hierarchy, allSyntaxContexts,
 			syntax => (syntax.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)
-				?.Identifier.Text == "IProvide", (syntax, list) =>
-			{
-				//Since IProvide will only ever have one argument, we can just get the first one
-				var type = (syntax.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.TypeArgumentList.Arguments[0].ToString();
-				return list
-					.Where(x =>
-					{
-						var typeSyntax = x.Node as TypeDeclarationSyntax;
-						var sourceFileName = typeSyntax?.Identifier.ValueText;
-						return sourceFileName == type;
-					});
-			}
-		);
+				?.Identifier.Text == "IProvide",
+			(syntax) =>
+				(syntax.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?
+				.TypeArgumentList.Arguments[0].ToString() ?? string.Empty);
 	}
 
 	private static IList<GeneratorSyntaxContext> GetSyntaxContextForMethodDeclarations<TSyntax>(
 		this BaseHierarchy hierarchy,
 		IEnumerable<GeneratorSyntaxContext> allSyntaxContexts,
 		Func<TSyntax, bool> memberFilter,
-		Func<TSyntax, ImmutableList<GeneratorSyntaxContext>, IEnumerable<GeneratorSyntaxContext>> syntaxFilter) where TSyntax : MemberDeclarationSyntax
+		Func<TSyntax, string> nameFilter) where TSyntax : MemberDeclarationSyntax
 	{
-		var typeSyntax = hierarchy.TypeSyntax;
-		if (typeSyntax == null)
+		var baseTypeSyntax = hierarchy.TypeSyntax;
+		if (baseTypeSyntax == null)
 			return ImmutableList<GeneratorSyntaxContext>.Empty;
 
 		var allSyntaxContextList = allSyntaxContexts.ToImmutableList();
 		var listOfDependentContexts = new List<GeneratorSyntaxContext>();
 
 		//Find all members that match the filter
-		var syntaxes = typeSyntax
+		var syntaxes = baseTypeSyntax
 			.Members.OfType<TSyntax>()
 			.Where(memberFilter).ToList();
 
-		foreach (var method in syntaxes)
+		foreach (var syntax in syntaxes)
 		{
-			//For all members that match the filter, find all syntax contexts that match the filter
-			var childContexts = syntaxFilter(method, allSyntaxContextList);
+			//Get the name of the type, then find all syntax contexts that match that name
+			var typeName = nameFilter(syntax);
+			var childContexts = allSyntaxContextList
+				.Where(x =>
+				{
+					var typeSyntax = x.Node as TypeDeclarationSyntax;
+					var sourceFileName = typeSyntax?.Identifier.ValueText;
+					return sourceFileName == typeName;
+				});
 			listOfDependentContexts.AddRange(childContexts);
 		}
 
