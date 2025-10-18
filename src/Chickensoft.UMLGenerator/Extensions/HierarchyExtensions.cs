@@ -43,7 +43,7 @@ public static class HierarchyHelpers
 	public static bool HasClassDiagramAttribute(this BaseHierarchy hierarchy) => hierarchy.GetClassDiagramAttributeSyntax() != null;
 
 	/// <summary>
-	/// This will return type properties which exist in the interface
+	/// This will return properties which exist in the interface
 	/// </summary>
 	/// <returns></returns>
 	public static IEnumerable<PropertyDeclarationSyntax> GetPropertyDeclarations(this BaseHierarchy hierarchy, bool getAllProperties)
@@ -62,21 +62,6 @@ public static class HierarchyHelpers
 			where typeMember is PropertyDeclarationSyntax property &&
 			      interfaceMember is PropertyDeclarationSyntax interfaceProperty &&
 			      property.Identifier.Value == interfaceProperty.Identifier.Value
-			orderby (typeMember as PropertyDeclarationSyntax)?.Identifier.ValueText
-			select typeMember as PropertyDeclarationSyntax;
-	}
-
-	/// <summary>
-	/// This will return properties with the [Dependency] attribute which exist in the class
-	/// </summary>
-	/// <returns></returns>
-	public static IEnumerable<PropertyDeclarationSyntax> GetClassDependentPropertyDeclarations(this BaseHierarchy hierarchy)
-	{
-		if (hierarchy.TypeSyntax == null) return [];
-		return from typeMember in hierarchy.TypeSyntax.Members
-			where typeMember is PropertyDeclarationSyntax property &&
-			      property.AttributeLists.SelectMany(x => x.Attributes)
-				      .Any(x => x.Name.ToString() == "Dependency")
 			orderby (typeMember as PropertyDeclarationSyntax)?.Identifier.ValueText
 			select typeMember as PropertyDeclarationSyntax;
 	}
@@ -105,6 +90,21 @@ public static class HierarchyHelpers
 	/// This will return properties with the [Dependency] attribute which exist in the class
 	/// </summary>
 	/// <returns></returns>
+	public static IEnumerable<PropertyDeclarationSyntax> GetClassDependentPropertyDeclarations(this BaseHierarchy hierarchy)
+	{
+		if (hierarchy.TypeSyntax == null) return [];
+		return from typeMember in hierarchy.TypeSyntax.Members
+			where typeMember is PropertyDeclarationSyntax property &&
+			      property.AttributeLists.SelectMany(x => x.Attributes)
+				      .Any(x => x.Name.ToString() == "Dependency")
+			orderby (typeMember as PropertyDeclarationSyntax)?.Identifier.ValueText
+			select typeMember as PropertyDeclarationSyntax;
+	}
+
+	/// <summary>
+	/// This will return methods with the IProvide ExplicitInterfaceSpecifier which exist in the class
+	/// </summary>
+	/// <returns></returns>
 	public static IEnumerable<MethodDeclarationSyntax> GetProvisionMethodDeclarations(this BaseHierarchy hierarchy)
 	{
 		if (hierarchy.TypeSyntax == null) return [];
@@ -116,7 +116,7 @@ public static class HierarchyHelpers
 	}
 
 	/// <summary>
-	/// Returns all SyntaxContexts for properties which do have a Dependency attribute
+	/// Finds all syntax contexts for classes of declared properties which have the Dependency attribute
 	/// </summary>
 	/// <returns></returns>
 	public static IList<GeneratorSyntaxContext> GetSyntaxContextForDependentPropertyDeclarations(this BaseHierarchy hierarchy, IEnumerable<GeneratorSyntaxContext> allSyntaxContexts)
@@ -152,7 +152,43 @@ public static class HierarchyHelpers
 	}
 
 	/// <summary>
-	/// Returns all SyntaxContexts for methods which are arguments of the IProvide interface
+	/// Finds all syntax contexts for classes of declared properties which don't have the Dependency attribute
+	/// </summary>
+	/// <returns></returns>
+	public static IList<GeneratorSyntaxContext> GetSyntaxContextForPropertyDeclarations(this BaseHierarchy hierarchy, IEnumerable<GeneratorSyntaxContext> allSyntaxContexts)
+	{
+		var typeSyntax = hierarchy.TypeSyntax;
+		if (typeSyntax == null)
+			return ImmutableList<GeneratorSyntaxContext>.Empty;
+
+		var allSyntaxContextList = allSyntaxContexts.ToImmutableList();
+		var listOfChildContexts = new List<GeneratorSyntaxContext>();
+
+		var properties = typeSyntax
+			.Members.OfType<PropertyDeclarationSyntax>()
+			.Where(x =>
+				!x.AttributeLists.SelectMany(x => x.Attributes)
+					.Any(x => x.Name.ToString() == "Dependency"));
+
+		foreach (var property in properties)
+		{
+			var type = property.Type.ToString();
+			var childContexts = allSyntaxContextList
+				.Where(x =>
+				{
+					var syntax = x.Node as TypeDeclarationSyntax;
+					var sourceFileName = syntax?.Identifier.ValueText;
+					return sourceFileName == type && !hierarchy.DictOfChildren.ContainsKey(type);
+				});
+
+			listOfChildContexts.AddRange(childContexts);
+		}
+
+		return listOfChildContexts;
+	}
+
+	/// <summary>
+	/// Finds all syntax contexts for class argument T of the IProvide{T}.Value() method
 	/// </summary>
 	/// <returns></returns>
 	public static IList<GeneratorSyntaxContext> GetSyntaxContextForProvisionedMethodDeclarations(this BaseHierarchy hierarchy, IEnumerable<GeneratorSyntaxContext> allSyntaxContexts)
@@ -183,42 +219,6 @@ public static class HierarchyHelpers
 		}
 
 		return listOfDependentContexts;
-	}
-
-	/// <summary>
-	/// Returns all SyntaxContexts for properties which don't have a Dependency attribute
-	/// </summary>
-	/// <returns></returns>
-	public static IList<GeneratorSyntaxContext> GetSyntaxContextForPropertyDeclarations(this BaseHierarchy hierarchy, IEnumerable<GeneratorSyntaxContext> allSyntaxContexts)
-	{
-		var typeSyntax = hierarchy.TypeSyntax;
-		if (typeSyntax == null)
-			return ImmutableList<GeneratorSyntaxContext>.Empty;
-
-		var allSyntaxContextList = allSyntaxContexts.ToImmutableList();
-		var listOfChildContexts = new List<GeneratorSyntaxContext>();
-			
-		var properties = typeSyntax
-			.Members.OfType<PropertyDeclarationSyntax>()
-			.Where(x => 
-				!x.AttributeLists.SelectMany(x => x.Attributes)
-					.Any(x => x.Name.ToString() == "Dependency"));
-	
-		foreach (var property in properties)
-		{
-			var type = property.Type.ToString();
-			var childContexts = allSyntaxContextList
-				.Where(x =>
-				{
-					var typeSyntax = x.Node as TypeDeclarationSyntax;
-					var sourceFileName = typeSyntax?.Identifier.ValueText;
-					return sourceFileName == type && !hierarchy.DictOfChildren.ContainsKey(type);
-				});
-			
-			listOfChildContexts.AddRange(childContexts);
-		}
-
-		return listOfChildContexts;
 	}
 	
 	public static string GetScriptPath(this BaseHierarchy hierarchy, bool useVSCodePaths, int depth, out bool hasScript)
