@@ -12,10 +12,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 public abstract class BaseHierarchy(GenerationData data)
 {
-	private Dictionary<string, BaseHierarchy> _dictOfDependencies = [];
-	private Dictionary<string, BaseHierarchy> _dictOfProvisions = [];
-	private Dictionary<string, BaseHierarchy> _dictOfChildren = [];
-	private Dictionary<string, BaseHierarchy> _dictOfParents = [];
+	private readonly Dictionary<string, BaseHierarchy> _dictOfDependencies = [];
+	private readonly Dictionary<string, BaseHierarchy> _dictOfProvisions = [];
+	private readonly Dictionary<string, BaseHierarchy> _dictOfChildren = [];
+	private readonly Dictionary<string, BaseHierarchy> _dictOfParents = [];
 
 	public IReadOnlyDictionary<string, BaseHierarchy> DictOfDependencies => _dictOfDependencies;
 	public IReadOnlyDictionary<string, BaseHierarchy> DictOfProvisions => _dictOfProvisions;
@@ -144,7 +144,7 @@ public abstract class BaseHierarchy(GenerationData data)
 		if (childrenToDraw.Count == 0)
 			return typeDefinition;
 		
-		var newFilePath = attribute.UseVSCodePaths ? HierarchyHelpers.GetVSCodePath(FullFilePath) : HierarchyHelpers.GetPathWithDepth(FilePath, depth);
+		var newFilePath = attribute.UseVSCodePaths ? HierarchyExtensions.GetVSCodePath(FullFilePath) : HierarchyExtensions.GetPathWithDepth(FilePath, depth);
 		
 		var childrenDefinitions = string.Join("\n\t",
 			childrenToDraw.Select(x =>
@@ -270,8 +270,8 @@ public abstract class BaseHierarchy(GenerationData data)
 						return value;
 
 					var scriptPath = useVsCodePaths
-						? HierarchyHelpers.GetVSCodePath(child.FullScriptPath)
-						: HierarchyHelpers.GetPathWithDepth(child.ScriptPath, depth);
+						? HierarchyExtensions.GetVSCodePath(child.FullScriptPath)
+						: HierarchyExtensions.GetPathWithDepth(child.ScriptPath, depth);
 
 					var scriptDefinitions = $" - [[{scriptPath} Script]]";
 
@@ -314,7 +314,7 @@ public abstract class BaseHierarchy(GenerationData data)
 					if(!DictOfDependencies.TryGetValue(propName!, out var child) && !DictOfDependencies.TryGetValue(propName!.Substring(1), out child))
 						return value;
 
-					var scriptPath = useVsCodePaths ? HierarchyHelpers.GetVSCodePath(child.FullScriptPath) : HierarchyHelpers.GetPathWithDepth(child.ScriptPath, depth);
+					var scriptPath = useVsCodePaths ? HierarchyExtensions.GetVSCodePath(child.FullScriptPath) : HierarchyExtensions.GetPathWithDepth(child.ScriptPath, depth);
 
 					return $"{value} - [[{scriptPath} Script]]";
 				})
@@ -333,7 +333,7 @@ public abstract class BaseHierarchy(GenerationData data)
 					if(!DictOfProvisions.TryGetValue(provisionName!, out var child) && !DictOfProvisions.TryGetValue(provisionName!.Substring(1), out child))
 						return value;
 
-					var scriptPath = useVsCodePaths ? HierarchyHelpers.GetVSCodePath(child.FullScriptPath) : HierarchyHelpers.GetPathWithDepth(child.ScriptPath, depth);
+					var scriptPath = useVsCodePaths ? HierarchyExtensions.GetVSCodePath(child.FullScriptPath) : HierarchyExtensions.GetPathWithDepth(child.ScriptPath, depth);
 
 					return $"{value} - [[{scriptPath} Script]]";
 				})
