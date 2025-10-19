@@ -182,7 +182,8 @@ public abstract class BaseHierarchy(GenerationData data)
 	{
 		var useVsCodePaths = classDiagramAttribute.UseVSCodePaths;
 		children = ImmutableDictionary<string, BaseHierarchy>.Empty;
-		
+
+		var externalChildrenString = string.Empty;
 		var interfaceMethodsString = string.Empty;
 		var dependencyPropertiesString = string.Empty;
 		var provisionMethodsString = string.Empty;
@@ -191,25 +192,31 @@ public abstract class BaseHierarchy(GenerationData data)
 		var newScriptPath = this.GetScriptPath(useVsCodePaths, depth, out var hasScript);
 		
 		var propertyDeclarations = this.GetPropertyDeclarations(classDiagramAttribute.ShowAllProperties).ToList();
-		var allProperties = TypeSyntax?.Members.OfType<PropertyDeclarationSyntax>() ?? [];
-			
-		var props = 
+		var allProperties = TypeSyntax?.Members.OfType<PropertyDeclarationSyntax>().ToList() ?? [];
+
+		//Get all the names of the properties that exist as a child to the current node
+		var props =
 			from child in DictOfChildren
 			from prop in allProperties
 			where prop.Type.ToString() == child.Key || prop.Type.ToString() == $"I{child.Key}"
-			select (prop.Identifier.ValueText, child.Value);
+			select (
+				PropertyName: prop.Identifier.ValueText,
+				Hierarchy: child.Value
+			);
 
+		//Get all the names of the children which exist as a child to the current node
+		//If a property exists, return the property name, otherwise return the type name
 		children =
 			(from child in DictOfChildren
-				join prop in props on child.Key equals prop.Value.Name into grouping
+				join prop in props on child.Key equals prop.Hierarchy.Name into grouping
 				from prop in grouping.DefaultIfEmpty()
-				orderby prop.Item1, child.Key
-				select (prop.Item1 ?? child.Key, child.Value))
-			.ToDictionary(x => x.Item1, x => x.Value);
+				orderby prop.PropertyName, child.Key
+				select (Name: prop.PropertyName ?? child.Key, Hierarchy: child.Value))
+			.ToDictionary(x => x.Name, x => x.Hierarchy);
 
 		var insideProp = children;
 			
-		var externalChildrenString = string.Join("\n\t",
+		externalChildrenString = string.Join("\n\t",
 			children.Where(x =>  propertyDeclarations
 					.All(y => y.Identifier.ValueText != x.Key))
 				.Select(x =>
@@ -218,14 +225,14 @@ public abstract class BaseHierarchy(GenerationData data)
 					var propName = x.Key;
 					var value = string.Empty;
 
-					var scriptPath = x.Value.GetScriptPath(useVsCodePaths, depth, out var hasScript);
+					var scriptPath = x.Value.GetScriptPath(useVsCodePaths, depth, out var childHasScript);
 
 					var propertyDeclarationSyntax = TypeSyntax?
 						.Members
 						.OfType<PropertyDeclarationSyntax>()
 						.FirstOrDefault(x => x.Identifier.ValueText == propName);
 
-					//Get direct link to property declaration
+					//Get a direct link to property declaration
 					if (propertyDeclarationSyntax != null)
 						value = $"[[{newScriptPath}:{propertyDeclarationSyntax.GetLineNumber()} {propName}]]";
 					else if (this is NodeHierarchy nodeHierarchy)
@@ -235,11 +242,10 @@ public abstract class BaseHierarchy(GenerationData data)
 							.AllChildren
 							.FirstOrDefault(node => node.Type == propName)?.Name;
 					}
-
-					if(string.IsNullOrEmpty(value))
+					else
 						value = propName;
 
-					var fileType = hasScript ? "Script" : "Scene";
+					var fileType = childHasScript ? "Script" : "Scene";
 
 					if(!string.IsNullOrWhiteSpace(scriptPath))
 						scriptDefinitions = $" - [[{scriptPath} {fileType}]]";
