@@ -1,175 +1,127 @@
-namespace Chickensoft.UMLGenerator.Models;
+namespace Chickensoft.UMLGenerator;
 
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using Godot;
 using Helpers;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Models;
 
-public abstract class BaseHierarchy(GenerationData data)
+public class PumlWriter(IDictionary<string, BaseHierarchy> nodeHierarchyList, GenerationData data)
 {
-	private readonly Dictionary<string, BaseHierarchy> _dictOfDependencies = [];
-	private readonly Dictionary<string, BaseHierarchy> _dictOfProvisions = [];
-	private readonly Dictionary<string, BaseHierarchy> _dictOfChildren = [];
-	private readonly Dictionary<string, BaseHierarchy> _dictOfParents = [];
-
-	public IReadOnlyDictionary<string, BaseHierarchy> DictOfDependencies => _dictOfDependencies;
-	public IReadOnlyDictionary<string, BaseHierarchy> DictOfProvisions => _dictOfProvisions;
-	public IReadOnlyDictionary<string, BaseHierarchy> DictOfChildren => _dictOfChildren;
-	public IReadOnlyDictionary<string, BaseHierarchy> DictOfParents => _dictOfParents;
-	
-	public virtual List<GeneratorSyntaxContext> ContextList { get; } = [];
-	
-	public TypeDeclarationSyntax? TypeSyntax => ContextList.Select(x => x.Node)
-		.FirstOrDefault(x => x is ClassDeclarationSyntax or RecordDeclarationSyntax or StructDeclarationSyntax) as TypeDeclarationSyntax;
-	public InterfaceDeclarationSyntax? InterfaceSyntax => ContextList.Select(x => x.Node)
-		.FirstOrDefault(x => x is InterfaceDeclarationSyntax ctx && ctx.Identifier.ValueText == $"I{Name}") as InterfaceDeclarationSyntax;
-	
-	public string FilePath => FullFilePath.Replace($"{data.ProjectDir}", "");
-	public abstract string FullFilePath { get; }
-	public string ScriptPath => FullScriptPath.Replace($"{data.ProjectDir}", "");
-	public abstract string FullScriptPath { get; }
-	public string Name => Path.GetFileNameWithoutExtension(FilePath);
-	
-	public virtual void GenerateHierarchy(IDictionary<string, BaseHierarchy> nodeHierarchyList)
+	public void GenerateHierarchy(BaseHierarchy hierarchy)
 	{
-		var propertyDeclarations = this.GetSyntaxContextForPropertyDeclarations(data.SyntaxContexts);
+		if (hierarchy is NodeHierarchy { Node.AllChildren: not null } nodeHierarchy)
+			foreach (var nodeDefinition in nodeHierarchy.Node.AllChildren)
+			{
+				if (!nodeHierarchyList.TryGetValue(nodeDefinition.Type, out var childNodeHierarchy))
+					continue;
+
+				hierarchy.AddChild(childNodeHierarchy);
+				childNodeHierarchy.AddParent(nodeHierarchy);
+			}
+
+		var propertyDeclarations = hierarchy.GetSyntaxContextForPropertyDeclarations(data.SyntaxContexts);
 		foreach (var ctx in propertyDeclarations)
 		{
 			var typeName = Path.GetFileNameWithoutExtension(ctx.SemanticModel.SyntaxTree.FilePath);
-			if (!nodeHierarchyList.TryGetValue(typeName, out var childNodeHierarchy)) 
+			if (!nodeHierarchyList.TryGetValue(typeName, out var childNodeHierarchy))
 				continue;
 
-			if(childNodeHierarchy == this)
+			if(childNodeHierarchy == hierarchy)
 				continue;
-			
-			AddChild(childNodeHierarchy);
-			childNodeHierarchy.AddParent(this);
+
+			hierarchy.AddChild(childNodeHierarchy);
+			childNodeHierarchy.AddParent(hierarchy);
 		}
 
-		var dependentDeclarations = this.GetSyntaxContextForDependentPropertyDeclarations(data.SyntaxContexts);
+		var dependentDeclarations = hierarchy.GetSyntaxContextForDependentPropertyDeclarations(data.SyntaxContexts);
 		foreach (var ctx in dependentDeclarations)
 		{
 			var typeName = Path.GetFileNameWithoutExtension(ctx.SemanticModel.SyntaxTree.FilePath);
 			if (!nodeHierarchyList.TryGetValue(typeName, out var childNodeHierarchy))
 				continue;
 
-			AddDependent(childNodeHierarchy);
+			hierarchy.AddDependent(childNodeHierarchy);
 		}
 
-		var provisionDeclarations = this.GetSyntaxContextForProvisionedMethodDeclarations(data.SyntaxContexts);
+		var provisionDeclarations = hierarchy.GetSyntaxContextForProvisionedMethodDeclarations(data.SyntaxContexts);
 		foreach (var ctx in provisionDeclarations)
 		{
 			var typeName = Path.GetFileNameWithoutExtension(ctx.SemanticModel.SyntaxTree.FilePath);
 			if (!nodeHierarchyList.TryGetValue(typeName, out var childNodeHierarchy))
 				continue;
 
-			AddProvision(childNodeHierarchy);
+			hierarchy.AddProvision(childNodeHierarchy);
 		}
 
-		var parameterList = TypeSyntax?.ParameterList?.Parameters ?? Enumerable.Empty<ParameterSyntax>();
+		var parameterList = hierarchy.TypeSyntax?.ParameterList?.Parameters ?? Enumerable.Empty<ParameterSyntax>();
 		foreach (var ctx in parameterList)
 		{
 			var typeName = ctx.Type?.ToFullString().Trim();
 			var typeWithoutInterface = ctx.Type?.ToFullString().TrimStart('I').Trim();
 			BaseHierarchy? childNodeHierarchy;
-			if (!nodeHierarchyList.TryGetValue(typeName, out childNodeHierarchy) && 
-			    !nodeHierarchyList.TryGetValue(typeWithoutInterface, out childNodeHierarchy)) 
+			if (!nodeHierarchyList.TryGetValue(typeName, out childNodeHierarchy) &&
+			    !nodeHierarchyList.TryGetValue(typeWithoutInterface, out childNodeHierarchy))
 				continue;
-			
-			AddChild(childNodeHierarchy);
-			childNodeHierarchy.AddParent(this);
+
+			hierarchy.AddChild(childNodeHierarchy);
+			childNodeHierarchy.AddParent(hierarchy);
 		}
 	}
 
-	internal void AddDependent(BaseHierarchy node)
+	public string GetDiagram(BaseHierarchy hierarchy, int depth, ClassDiagramAttribute attribute)
 	{
-		if(!_dictOfDependencies.ContainsKey(node.Name))
-			_dictOfDependencies.Add(node.Name, node);
-		else
-			Console.WriteLine($"Found duplicate dependent {node.Name} in {Name}");
-	}
+		var typeDefinition = GetTypeDefinition(hierarchy, depth, attribute, out var properties);
 
-	internal void AddProvision(BaseHierarchy node)
-	{
-		if(!_dictOfProvisions.ContainsKey(node.Name))
-			_dictOfProvisions.Add(node.Name, node);
-		else
-			Console.WriteLine($"Found duplicate provision {node.Name} in {Name}");
-	}
-
-
-	internal void AddChild(BaseHierarchy node)
-	{
-		if(!_dictOfChildren.ContainsKey(node.Name))
-			_dictOfChildren.Add(node.Name, node);
-		else
-			Console.WriteLine($"Found duplicate child {node.Name} in {Name}");
-	}
-
-	internal void AddParent(BaseHierarchy node)
-	{
-		if (!_dictOfParents.ContainsKey(node.Name))
-		{
-			_dictOfParents.Add(node.Name, node);
-		}
-		else
-			Console.WriteLine($"Found duplicate parent {node.Name} in {Name}");
-	}
-	
-	internal string GetDiagram(int depth, ClassDiagramAttribute attribute)
-	{
-		var typeDefinition = GetTypeDefinition(depth, attribute, out var properties);
-		
-		var childrenToDraw = DictOfChildren.Values
-			.Where(x => x.DictOfChildren.Count != 0 ||
-			            x.DictOfDependencies.Count != 0 ||
-			            x.DictOfProvisions.Count != 0 ||
+		var childrenToDraw = hierarchy.Children.Values
+			.Where(x => x.Children.Count != 0 ||
+			            x.Dependencies.Count != 0 ||
+			            x.Provisions.Count != 0 ||
 			            x.GetPropertyDeclarations(attribute.ShowAllProperties).Any() ||
 			            x.GetMethodDeclarations(attribute.ShowAllMethods).Any() ||
-						!properties.Values.Contains(x)
-			).ToList();
-		
+			            !properties.Values.Contains(x)).ToList();
+
 		if (childrenToDraw.Count == 0)
 			return typeDefinition;
-		
-		var newFilePath = attribute.UseVSCodePaths ? HierarchyExtensions.GetVSCodePath(FullFilePath) : HierarchyExtensions.GetPathWithDepth(FilePath, depth);
-		
+
+		var newFilePath = attribute.UseVSCodePaths ?
+			HierarchyExtensions.GetVSCodePath(hierarchy.FullFilePath) :
+			HierarchyExtensions.GetPathWithDepth(hierarchy.FilePath, depth);
+
 		var childrenDefinitions = string.Join("\n\t",
 			childrenToDraw.Select(x =>
-				x.GetDiagram(depth, attribute)
+				GetDiagram(x, depth, attribute)
 			)
 		);
 
 		var childrenRelationships = string.Join("\n\t",
 			childrenToDraw.Select(x =>
 			{
-				var memberName = (this as NodeHierarchy)?
+				var memberName = (hierarchy as NodeHierarchy)?
 				                 .Node?
 				                 .AllChildren
 				                 .FirstOrDefault(node => node.Type == x.Name)?.Name
-				                 ?? properties.FirstOrDefault(prop => x == prop.Value).Key 
+				                 ?? properties.FirstOrDefault(prop => x == prop.Value).Key
 				                 ?? x.Name;
-				
-				return $"{Name}::{memberName} {(x.DictOfChildren.Count == 0 ? string.Empty : "-")}--> {x.Name}";
+
+				return $"{hierarchy.Name}::{memberName} {(x.Children.Count == 0 ? string.Empty : "-")}--> {x.Name}";
 			})
 		);
 
-		var packageType = this switch
+		var packageType = hierarchy switch
 		{
 			TypeHierarchy => "Type",
 			NodeHierarchy => "Scene",
 			_ => throw new NotImplementedException()
 		};
-			
-		return 
+
+		return
 			$$"""
 
-			  package {{Name}}-{{packageType}} [[{{newFilePath}}]] {
+			  package {{hierarchy.Name}}-{{packageType}} [[{{newFilePath}}]] {
 			  	{{typeDefinition}}
 			  	{{childrenDefinitions}}
 			  	{{childrenRelationships}}
@@ -178,7 +130,7 @@ public abstract class BaseHierarchy(GenerationData data)
 			  """;
 	}
 
-	private string GetTypeDefinition(int depth, ClassDiagramAttribute classDiagramAttribute, out IDictionary<string, BaseHierarchy> children)
+	private string GetTypeDefinition(BaseHierarchy hierarchy, int depth, ClassDiagramAttribute classDiagramAttribute, out IDictionary<string, BaseHierarchy> children)
 	{
 		var useVsCodePaths = classDiagramAttribute.UseVSCodePaths;
 		children = ImmutableDictionary<string, BaseHierarchy>.Empty;
@@ -189,14 +141,14 @@ public abstract class BaseHierarchy(GenerationData data)
 		var provisionMethodsString = string.Empty;
 		var propertiesString = string.Empty;
 
-		var newScriptPath = this.GetScriptPath(useVsCodePaths, depth, out var hasScript);
-		
-		var propertyDeclarations = this.GetPropertyDeclarations(classDiagramAttribute.ShowAllProperties).ToList();
-		var allProperties = TypeSyntax?.Members.OfType<PropertyDeclarationSyntax>().ToList() ?? [];
+		var newScriptPath = hierarchy.GetScriptPath(useVsCodePaths, depth, out var hasScript);
+
+		var propertyDeclarations = hierarchy.GetPropertyDeclarations(classDiagramAttribute.ShowAllProperties).ToList();
+		var allProperties = hierarchy.TypeSyntax?.Members.OfType<PropertyDeclarationSyntax>().ToList() ?? [];
 
 		//Get all the names of the properties that exist as a child to the current node
 		var props =
-			from child in DictOfChildren
+			from child in hierarchy.Children
 			from prop in allProperties
 			where prop.Type.ToString() == child.Key || prop.Type.ToString() == $"I{child.Key}"
 			select (
@@ -207,7 +159,7 @@ public abstract class BaseHierarchy(GenerationData data)
 		//Get all the names of the children which exist as a child to the current node
 		//If a property exists, return the property name, otherwise return the type name
 		children =
-			(from child in DictOfChildren
+			(from child in hierarchy.Children
 				join prop in props on child.Key equals prop.Hierarchy.Name into grouping
 				from prop in grouping.DefaultIfEmpty()
 				orderby prop.PropertyName, child.Key
@@ -215,7 +167,7 @@ public abstract class BaseHierarchy(GenerationData data)
 			.ToDictionary(x => x.Name, x => x.Hierarchy);
 
 		var insideProp = children;
-			
+
 		externalChildrenString = string.Join("\n\t",
 			children.Where(x =>  propertyDeclarations
 					.All(y => y.Identifier.ValueText != x.Key))
@@ -227,7 +179,7 @@ public abstract class BaseHierarchy(GenerationData data)
 
 					var scriptPath = x.Value.GetScriptPath(useVsCodePaths, depth, out var childHasScript);
 
-					var propertyDeclarationSyntax = TypeSyntax?
+					var propertyDeclarationSyntax = hierarchy.TypeSyntax?
 						.Members
 						.OfType<PropertyDeclarationSyntax>()
 						.FirstOrDefault(x => x.Identifier.ValueText == propName);
@@ -235,7 +187,7 @@ public abstract class BaseHierarchy(GenerationData data)
 					//Get a direct link to property declaration
 					if (propertyDeclarationSyntax != null)
 						value = $"[[{newScriptPath}:{propertyDeclarationSyntax.GetLineNumber()} {propName}]]";
-					else if (this is NodeHierarchy nodeHierarchy)
+					else if (hierarchy is NodeHierarchy nodeHierarchy)
 					{
 						value = nodeHierarchy
 							.Node?
@@ -257,7 +209,7 @@ public abstract class BaseHierarchy(GenerationData data)
 		if (!string.IsNullOrWhiteSpace(externalChildrenString))
 			externalChildrenString = "\n--\n" + externalChildrenString;
 
-		if (InterfaceSyntax != null || classDiagramAttribute.ShowAllProperties)
+		if (hierarchy.InterfaceSyntax != null || classDiagramAttribute.ShowAllProperties)
 		{
 			propertiesString = string.Join("\n\t",
 				propertyDeclarations.Select(x =>
@@ -282,9 +234,9 @@ public abstract class BaseHierarchy(GenerationData data)
 				propertiesString = "\n--\n" + propertiesString;
 		}
 
-		if(InterfaceSyntax != null || classDiagramAttribute.ShowAllMethods)
+		if(hierarchy.InterfaceSyntax != null || classDiagramAttribute.ShowAllMethods)
 		{
-			var methodString = this.GetMethodDeclarations(classDiagramAttribute.ShowAllMethods);
+			var methodString = hierarchy.GetMethodDeclarations(classDiagramAttribute.ShowAllMethods);
 
 			interfaceMethodsString = string.Join("\n\t",
 				methodString.Select(x =>
@@ -301,16 +253,17 @@ public abstract class BaseHierarchy(GenerationData data)
 				interfaceMethodsString = "\n--\n" + interfaceMethodsString;
 		}
 
-		if (DictOfDependencies.Count != 0)
+		var dependencies = hierarchy.Dependencies;
+		if (dependencies.Count != 0)
 		{
-			var dependentPropertiesFromClass = this.GetClassDependentPropertyDeclarations().ToList();
+			var dependentPropertiesFromClass = hierarchy.GetClassDependentPropertyDeclarations().ToList();
 			dependencyPropertiesString = "\n\t" + "[Dependencies]" + "\n\t" + string.Join("\n\t",
 				dependentPropertiesFromClass.Select(x =>
 				{
 					var propName = x?.Type.ToString();
 					var value = $"[[{newScriptPath}:{x?.GetLineNumber()} {propName}]]";
 
-					if(!DictOfDependencies.TryGetValue(propName!, out var child) && !DictOfDependencies.TryGetValue(propName!.Substring(1), out child))
+					if(!dependencies.TryGetValue(propName!, out var child) && !dependencies.TryGetValue(propName!.Substring(1), out child))
 						return value;
 
 					var scriptPath = useVsCodePaths ? HierarchyExtensions.GetVSCodePath(child.FullScriptPath) : HierarchyExtensions.GetPathWithDepth(child.ScriptPath, depth);
@@ -320,16 +273,17 @@ public abstract class BaseHierarchy(GenerationData data)
 			);
 		}
 
-		if (DictOfProvisions.Count != 0)
+		var provisions = hierarchy.Provisions;
+		if (provisions.Count != 0)
 		{
-			var provisionMethodsFromClass = this.GetProvisionMethodDeclarations().ToList();
+			var provisionMethodsFromClass = hierarchy.GetProvisionMethodDeclarations().ToList();
 			provisionMethodsString = "\n\t" + "[Provisions]" + "\n\t" + string.Join("\n\t",
 				provisionMethodsFromClass.Select(x =>
 				{
 					var provisionName = (x.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.TypeArgumentList.Arguments[0].ToString();
 					var value = $"[[{newScriptPath}:{x.GetLineNumber()} {provisionName}]]";
 
-					if(!DictOfProvisions.TryGetValue(provisionName!, out var child) && !DictOfProvisions.TryGetValue(provisionName!.Substring(1), out child))
+					if(!provisions.TryGetValue(provisionName!, out var child) && !provisions.TryGetValue(provisionName!.Substring(1), out child))
 						return value;
 
 					var scriptPath = useVsCodePaths ? HierarchyExtensions.GetVSCodePath(child.FullScriptPath) : HierarchyExtensions.GetPathWithDepth(child.ScriptPath, depth);
@@ -338,15 +292,15 @@ public abstract class BaseHierarchy(GenerationData data)
 				})
 			);
 		}
-		
+
 		var fileType = hasScript ? "Script" : "Scene";
 
 		var spotCharacter = hasScript ? "" : "<< (S,black) >>";
 
-		return 
+		return
 		$$"""
 
-		class {{Name}} {{spotCharacter}} {
+		class {{hierarchy.Name}} {{spotCharacter}} {
 			[[{{newScriptPath}} {{fileType}}File]]{{dependencyPropertiesString}}{{provisionMethodsString}}{{propertiesString}}{{interfaceMethodsString}}{{externalChildrenString}}
 		}
 

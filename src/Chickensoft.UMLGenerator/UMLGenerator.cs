@@ -82,13 +82,15 @@ public class UMLGenerator : IIncrementalGenerator
 				nodeContextList.AddRange(syntaxContextGrouping.ToList());
 			}
 		}
-		
-		foreach (var hierarchy in hierarchyList.Values)
-		{
-			hierarchy.GenerateHierarchy(hierarchyList);
-		}
 
 		var nodesWithAttribute = hierarchyList.Values.Where(x => x.HasClassDiagramAttribute());
+
+		var pumlWriter = new PumlWriter(hierarchyList, data);
+
+		foreach (var hierarchy in hierarchyList.Values)
+		{
+			pumlWriter.GenerateHierarchy(hierarchy);
+		}
 
 		foreach (var node in nodesWithAttribute)
 		{
@@ -101,7 +103,7 @@ public class UMLGenerator : IIncrementalGenerator
 			var source =
 			$"""
 			@startuml
-			{node.GetDiagram(depth, classDiagramAttribute)}
+			{pumlWriter.GetDiagram(node, depth, classDiagramAttribute)}
 			@enduml
 			""";
 			var destFile = Path.Combine(data.ProjectDir!, filePath);
