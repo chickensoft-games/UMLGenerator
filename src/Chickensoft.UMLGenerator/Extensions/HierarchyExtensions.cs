@@ -160,9 +160,9 @@ public static class HierarchyExtensions
 		return listOfDependentContexts;
 	}
 	
-	public static string GetScriptPath(this BaseHierarchy hierarchy, bool useVSCodePaths, int depth, out bool hasScript)
+	public static string GetScriptPath(this BaseHierarchy hierarchy, bool useVSCodePaths, int depth)
 	{
-		hasScript = !string.IsNullOrEmpty(hierarchy.ScriptPath);
+		var hasScript = !string.IsNullOrEmpty(hierarchy.ScriptPath);
 		string filePath;
 		string fullFilePath;
 		

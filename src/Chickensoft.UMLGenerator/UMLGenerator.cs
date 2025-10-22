@@ -85,7 +85,7 @@ public class UMLGenerator : IIncrementalGenerator
 
 		var nodesWithAttribute = hierarchyList.Values.Where(x => x.HasClassDiagramAttribute());
 
-		var pumlWriter = new PumlWriter(hierarchyList, data);
+		var pumlWriter = new PumlWriter(hierarchyList);
 
 		foreach (var hierarchy in hierarchyList.Values)
 		{
@@ -103,7 +103,9 @@ public class UMLGenerator : IIncrementalGenerator
 			var source =
 			$"""
 			@startuml
-			{pumlWriter.GetDiagram(node, depth, classDiagramAttribute)}
+			
+			{pumlWriter.GetDiagram(node, depth, 0, classDiagramAttribute)}
+			
 			@enduml
 			""";
 			var destFile = Path.Combine(data.ProjectDir!, filePath);
