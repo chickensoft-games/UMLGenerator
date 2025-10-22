@@ -10,11 +10,11 @@ public class PrimaryConstructorModule : IModule
 {
 	public int Order => (int)ModuleOrder.Middle;
 	public string Title => "[Primary Constructors]";
-	public void SetupModule(BaseHierarchy hierarchy, IDictionary<string, BaseHierarchy> nodeHierarchyList)
+	public List<ModuleItem> SetupModule(BaseHierarchy hierarchy, IDictionary<string, BaseHierarchy> nodeHierarchyList)
 	{
 		var baseTypeSyntax = hierarchy.TypeSyntax;
 		if (baseTypeSyntax == null)
-			return;
+			return [];
 
 		var parameterList = baseTypeSyntax?.ParameterList?.Parameters ?? Enumerable.Empty<ParameterSyntax>();
 		var items = new List<ModuleItem>();
@@ -34,8 +34,8 @@ public class PrimaryConstructorModule : IModule
 				TypeName = typeName
 			});
 		}
-		if(items.Any())
-			hierarchy.AddModule<PrimaryConstructorModule>(items);
+
+		return items;
 	}
 
 	public IEnumerable<string> InvokeModule(BaseHierarchy hierarchy, bool useVSCodePaths, int depth)

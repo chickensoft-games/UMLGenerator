@@ -24,5 +24,5 @@ public abstract class BaseHierarchy(GenerationData data)
 	public string ScriptPath => FullScriptPath.Replace($"{data.ProjectDir}", "");
 	public abstract string FullScriptPath { get; }
 	public string Name => Path.GetFileNameWithoutExtension(FilePath);
-	public void AddModule<T>(List<ModuleItem> moduleItems) => _moduleItems.Add(typeof(T), moduleItems);
+	public void AddModule(Type type, List<ModuleItem> moduleItems) => _moduleItems.Add(type, moduleItems);
 }

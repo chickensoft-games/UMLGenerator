@@ -10,7 +10,7 @@ public class NodeModule : IModule
 	public int Order => (int)ModuleOrder.Middle;
 	public string Title => "[Nodes]";
 
-	public void SetupModule(BaseHierarchy hierarchy, IDictionary<string, BaseHierarchy> nodeHierarchyList)
+	public List<ModuleItem> SetupModule(BaseHierarchy hierarchy, IDictionary<string, BaseHierarchy> nodeHierarchyList)
 	{
 		var items = new List<ModuleItem>();
 		if (hierarchy is NodeHierarchy { Node.AllChildren: not null } nodeHierarchy)
@@ -28,8 +28,8 @@ public class NodeModule : IModule
 				});
 			}
 		}
-		if(items.Any())
-			hierarchy.AddModule<NodeModule>(items);
+
+		return items;
 	}
 
 	public IEnumerable<string> InvokeModule(BaseHierarchy hierarchy, bool useVSCodePaths, int depth)

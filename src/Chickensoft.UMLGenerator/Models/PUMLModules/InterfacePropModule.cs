@@ -2,25 +2,29 @@ namespace Chickensoft.UMLGenerator.PumlModules;
 
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Helpers;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Models;
 
-public class PropertyModule : IModule
+public class InterfaceModule : IModule
 {
 	public int Order => (int)ModuleOrder.Middle;
-	public string Title => "[Properties]";
+	public string Title => "[Interface Properties]";
 	public List<ModuleItem> SetupModule(BaseHierarchy hierarchy, IDictionary<string, BaseHierarchy> nodeHierarchyList)
 	{
 		var baseTypeSyntax = hierarchy.TypeSyntax;
 		if (baseTypeSyntax == null)
 			return [];
 
-		var propertyDeclarations = baseTypeSyntax
-			.Members.OfType<PropertyDeclarationSyntax>()
-			.Where(syntax => syntax.AttributeLists.SelectMany(x => x.Attributes)
-				.All(x => x.Name.ToString() != "Dependency") && syntax.ExplicitInterfaceSpecifier == null).ToList();
+		var propertyDeclarations =
+			from interfaceMember in hierarchy.InterfaceSyntax?.Members ?? []
+			from typeMember in hierarchy.TypeSyntax?.Members ?? []
+			where typeMember is PropertyDeclarationSyntax property &&
+			      interfaceMember is PropertyDeclarationSyntax interfaceProperty &&
+			      property.Identifier.Value == interfaceProperty.Identifier.Value
+			orderby (typeMember as PropertyDeclarationSyntax)?.Identifier.ValueText
+			select typeMember as PropertyDeclarationSyntax;
+
 		var items = new List<ModuleItem>();
 
 		foreach (var ctx in propertyDeclarations)

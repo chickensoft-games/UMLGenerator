@@ -29,7 +29,13 @@ public class PumlWriter
 	public void GenerateHierarchy(BaseHierarchy hierarchy)
 	{
 		foreach (var module in _modules.Values)
-			module.SetupModule(hierarchy, _nodeHierarchyList);
+		{
+			var output = module.SetupModule(hierarchy, _nodeHierarchyList);
+			if (output.Count > 0)
+			{
+				hierarchy.AddModule(module.GetType(), output);
+			}
+		}
 	}
 
 	public string GetDiagram(BaseHierarchy hierarchy, int depth, int fileDepth, ClassDiagramAttribute attribute)

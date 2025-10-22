@@ -10,11 +10,11 @@ public class ProvisionModule : IModule
 {
 	public int Order => (int)ModuleOrder.First;
 	public string Title => "[Provisions]";
-	public void SetupModule(BaseHierarchy hierarchy, IDictionary<string, BaseHierarchy> nodeHierarchyList)
+	public List<ModuleItem> SetupModule(BaseHierarchy hierarchy, IDictionary<string, BaseHierarchy> nodeHierarchyList)
 	{
 		var baseTypeSyntax = hierarchy.TypeSyntax;
 		if (baseTypeSyntax == null)
-			return;
+			return [];
 
 		var provisionDeclarations = baseTypeSyntax
 			.Members.OfType<MethodDeclarationSyntax>()
@@ -38,8 +38,8 @@ public class ProvisionModule : IModule
 				LineNumber = ctx.GetLineNumber()
 			});
 		}
-		if(items.Any())
-			hierarchy.AddModule<ProvisionModule>(items);
+
+		return items;
 	}
 
 	public IEnumerable<string> InvokeModule(BaseHierarchy hierarchy, bool useVSCodePaths, int depth)

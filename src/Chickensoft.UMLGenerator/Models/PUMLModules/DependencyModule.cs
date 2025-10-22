@@ -10,11 +10,11 @@ public class DependencyModule : IModule
 {
 	public int Order => (int)ModuleOrder.First;
 	public string Title => "[Dependencies]";
-	public void SetupModule(BaseHierarchy hierarchy, IDictionary<string, BaseHierarchy> nodeHierarchyList)
+	public List<ModuleItem> SetupModule(BaseHierarchy hierarchy, IDictionary<string, BaseHierarchy> nodeHierarchyList)
 	{
 		var baseTypeSyntax = hierarchy.TypeSyntax;
 		if (baseTypeSyntax == null)
-			return;
+			return [];
 
 		var dependentDeclarations = baseTypeSyntax
 			.Members.OfType<PropertyDeclarationSyntax>()
@@ -40,8 +40,7 @@ public class DependencyModule : IModule
 			});
 		}
 
-		if (items.Any())
-			hierarchy.AddModule<DependencyModule>(items);
+		return items;
 	}
 
 	public IEnumerable<string> InvokeModule(BaseHierarchy hierarchy, bool useVSCodePaths, int depth)

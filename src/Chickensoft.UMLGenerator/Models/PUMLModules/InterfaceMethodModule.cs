@@ -6,20 +6,25 @@ using Helpers;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Models;
 
-public class MethodModule : IModule
+public class InterfaceMethodModule : IModule
 {
 	public int Order => (int)ModuleOrder.Last;
-	public string Title => "[Methods]";
+	public string Title => "[Interface Methods]";
 	public List<ModuleItem> SetupModule(BaseHierarchy hierarchy, IDictionary<string, BaseHierarchy> nodeHierarchyList)
 	{
 		var baseTypeSyntax = hierarchy.TypeSyntax;
 		if (baseTypeSyntax == null)
 			return [];
 
-		var methodDeclarations = baseTypeSyntax
-			.Members.OfType<MethodDeclarationSyntax>()
-			.Where(syntax => (syntax.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.Identifier.Text != "IProvide"
-			                 && syntax.ExplicitInterfaceSpecifier == null).ToList();
+		var methodDeclarations =
+			from interfaceMember in hierarchy.InterfaceSyntax?.Members ?? []
+			from typeMember in hierarchy.TypeSyntax?.Members ?? []
+			where typeMember is MethodDeclarationSyntax typeMethod &&
+			      interfaceMember is MethodDeclarationSyntax interfaceMethod &&
+			      typeMethod.Identifier.Value == interfaceMethod.Identifier.Value
+			orderby (typeMember as MethodDeclarationSyntax)?.Identifier.ValueText
+			select typeMember as MethodDeclarationSyntax;
+
 		var items = new List<ModuleItem>();
 
 		foreach (var ctx in methodDeclarations)
