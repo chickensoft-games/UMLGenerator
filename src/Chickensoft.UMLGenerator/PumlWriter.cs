@@ -42,8 +42,10 @@ public class PumlWriter
 	{
 		var childrenToDraw = node.ModuleItems
 			.Where(x =>
-				x.Key == typeof(PropertyModule) ||
-				x.Key == typeof(NodeModule))
+				(x.Key == typeof(PropertyModule) ||
+				x.Key == typeof(InterfaceModule) ||
+				x.Key == typeof(NodeModule)) &&
+				x.Value.All(y => y.Node != node))
 			.Select(x => x.Value)
 			.SelectMany(x => x)
 			.Select(x => x.Node)
@@ -93,7 +95,7 @@ public class PumlWriter
 		return
 			$$"""
 			  {{depthPadding}}package {{node.Name}}-{{packageType}} [[{{newFilePath}}]] {
-			  {{depthPadding}}{{typeDefinition}}
+			  {{typeDefinition}}
 			  {{childrenDefinitions}}
 			  {{childrenRelationships}}
 			  {{depthPadding}}
@@ -120,7 +122,7 @@ public class PumlWriter
 				.InvokeModule(node, moduleItems, useVsCodePaths, depth)
 				.ToList();
 
-			List<string> finalString = ["", module.Title, ..moduleString];
+			List<string> finalString = ["--", module.Title, ..moduleString];
 
 			finalString = finalString.Select(x => depthPadding2 + x)
 				.ToList();
@@ -129,12 +131,12 @@ public class PumlWriter
 		}
 
 		var mergedList = outputList.Values.SelectMany(x => x);
-		var moduleOutput = string.Join("\t\n", mergedList);
+		var moduleOutput = string.Join("\n", mergedList);
 		var hasScript = node.ContextList.Any();
 
 		var newFilePath = useVsCodePaths ?
-			NodeExtensions.GetVSCodePath(node.FullFilePath) :
-			NodeExtensions.GetPathWithDepth(node.FilePath, depth);
+			NodeExtensions.GetVSCodePath(hasScript ? node.FullScriptPath : node.FullFilePath) :
+			NodeExtensions.GetPathWithDepth(hasScript ? node.ScriptPath : node.FilePath, depth);
 
 		var fileType = hasScript ? "Script" : "Scene";
 
@@ -142,12 +144,10 @@ public class PumlWriter
 
 		return
 		$$"""
-
 		{{depthPadding}}class {{node.Name}} {{spotCharacter}} {
 		{{depthPadding2}}[[{{newFilePath}} {{fileType}}File]]
-		{{depthPadding}}{{moduleOutput}}
+		{{moduleOutput}}
 		{{depthPadding}}}
-
 		""";
 	}
 }

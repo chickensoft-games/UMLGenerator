@@ -13,9 +13,7 @@ public static class AttributeExtensions
 		var arguments = attribute?.ArgumentList?.Arguments;
 		return new ClassDiagramAttribute()
 		{
-			UseVSCodePaths = GetAttributeBooleanValue(arguments, nameof(ClassDiagramAttribute.UseVSCodePaths)),
-			ShowAllProperties = GetAttributeBooleanValue(arguments, nameof(ClassDiagramAttribute.ShowAllProperties)),
-			ShowAllMethods = GetAttributeBooleanValue(arguments, nameof(ClassDiagramAttribute.ShowAllMethods))
+			UseVSCodePaths = GetAttributeBooleanValue(arguments, nameof(ClassDiagramAttribute.UseVSCodePaths))
 		};
 	}
 

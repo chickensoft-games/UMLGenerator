@@ -33,11 +33,10 @@ public class NodeModule : IModule
 
 	public IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
 	{
-		var parentScriptPath = node.GetScriptPath(useVSCodePaths, depth);
 		foreach (var module in moduleItems)
 		{
 			var childScript =  module.Node?.GetScriptPath(useVSCodePaths, depth);
-			yield return $"[[{parentScriptPath}:{module.LineNumber} {module.Name}]] - [[{childScript} Script]]";
+			yield return $"{module.Name} - [[{childScript} Script]]";
 		}
 	}
 }

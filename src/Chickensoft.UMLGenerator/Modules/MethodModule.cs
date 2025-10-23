@@ -14,7 +14,6 @@ public class MethodModule : IModule
 	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
 	{
 		var baseTypeSyntax = node.TypeSyntax;
-		var hierarchyContext = node.SemanticModel;
 		var interfaceMethods = node.InterfaceSyntax?.Members.OfType<MethodDeclarationSyntax>() ?? [];
 		if (baseTypeSyntax == null)
 			return [];
@@ -23,8 +22,7 @@ public class MethodModule : IModule
 			from typeMember in baseTypeSyntax.Members
 			where typeMember is MethodDeclarationSyntax typeMethod &&
 			      (typeMethod.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.Identifier.Text != "IProvide" &&
-			      interfaceMethods.All(x => x.Identifier.Value != typeMethod.Identifier.Value) &&
-			      hierarchyContext?.GetDeclaredSymbol(typeMethod) is { IsOverride: false }
+			      interfaceMethods.All(x => x.Identifier.Value != typeMethod.Identifier.Value)
 			orderby (typeMember as MethodDeclarationSyntax)?.Identifier.ValueText
 			select typeMember as MethodDeclarationSyntax;
 
