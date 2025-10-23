@@ -122,7 +122,7 @@ public class PumlWriter
 				.InvokeModule(node, moduleItems, useVsCodePaths, depth)
 				.ToList();
 
-			List<string> finalString = ["--", module.Title, ..moduleString];
+			List<string> finalString = [module.Title, ..moduleString];
 
 			finalString = finalString.Select(x => depthPadding2 + x)
 				.ToList();
@@ -130,7 +130,18 @@ public class PumlWriter
 			outputList.Add(modulePair.Key, finalString);
 		}
 
-		var mergedList = outputList.Values.SelectMany(x => x);
+		var mergedList = outputList
+			.GroupBy(x => _modules[x.Key].Order)
+			.Select(x =>
+			{
+				var result = x
+					.ToList()
+					.SelectMany(y => y.Value)
+					.Append("--");
+				return result;
+			})
+			.SelectMany(x => x);
+
 		var moduleOutput = string.Join("\n", mergedList);
 		var hasScript = node.ContextList.Any();
 
