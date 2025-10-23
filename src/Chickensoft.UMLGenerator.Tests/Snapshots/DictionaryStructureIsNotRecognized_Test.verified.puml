@@ -1,7 +1,8 @@
 ﻿@startuml
 
-class Test << (S,black) >> {
-	[[../../TestCases/DictionaryStructureIsNotRecognized/Test.tscn SceneFile]]
+class Test  {
+    [[ ScriptFile]]
+
 }
 
 @enduml

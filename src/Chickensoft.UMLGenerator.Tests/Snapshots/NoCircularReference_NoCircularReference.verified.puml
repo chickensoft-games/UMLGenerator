@@ -1,7 +1,9 @@
 ﻿@startuml
 
 class NoCircularReference  {
-	[[vscode://file/{ProjectDirectory}TestCases/NoCircularReference/NoCircularReference.cs ScriptFile]]
+    [[vscode://file/{ProjectDirectory}TestCases/NoCircularReference/NoCircularReference.cs ScriptFile]]
+    [Properties]
+    [[vscode://file/{ProjectDirectory}TestCases/NoCircularReference/NoCircularReference.cs:9 Inst]] - [[vscode://file/{ProjectDirectory}TestCases/NoCircularReference/NoCircularReference.cs Script]]
 }
 
 @enduml

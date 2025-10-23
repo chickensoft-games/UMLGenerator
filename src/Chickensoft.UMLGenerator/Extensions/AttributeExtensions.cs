@@ -7,22 +7,20 @@ using Models;
 
 public static class AttributeExtensions
 {
-	public static ClassDiagramAttribute GetClassDiagramAttribute(this BaseHierarchy hierarchy)
+	public static ClassDiagramAttribute GetClassDiagramAttribute(this BaseNode node)
 	{
-		var attribute = hierarchy.GetClassDiagramAttributeSyntax();
+		var attribute = node.GetClassDiagramAttributeSyntax();
 		var arguments = attribute?.ArgumentList?.Arguments;
 		return new ClassDiagramAttribute()
 		{
-			UseVSCodePaths = GetAttributeBooleanValue(arguments, nameof(ClassDiagramAttribute.UseVSCodePaths)),
-			ShowAllProperties = GetAttributeBooleanValue(arguments, nameof(ClassDiagramAttribute.ShowAllProperties)),
-			ShowAllMethods = GetAttributeBooleanValue(arguments, nameof(ClassDiagramAttribute.ShowAllMethods))
+			UseVSCodePaths = GetAttributeBooleanValue(arguments, nameof(ClassDiagramAttribute.UseVSCodePaths))
 		};
 	}
 
-	private static AttributeSyntax? GetClassDiagramAttributeSyntax(this BaseHierarchy hierarchy)
+	private static AttributeSyntax? GetClassDiagramAttributeSyntax(this BaseNode node)
 	{
 		var attributeName = nameof(ClassDiagramAttribute).Replace("Attribute", "");
-		var classDiagramAttribute = hierarchy.ContextList
+		var classDiagramAttribute = node.ContextList
 			.Select(x => (x.Node as TypeDeclarationSyntax)?.AttributeLists.SelectMany(x => x.Attributes))
 			.SelectMany(x => x)
 			.FirstOrDefault(x => x.Name.ToString() == attributeName);
@@ -30,7 +28,7 @@ public static class AttributeExtensions
 		return classDiagramAttribute;
 	}
 
-	public static bool HasClassDiagramAttribute(this BaseHierarchy hierarchy) => hierarchy.GetClassDiagramAttributeSyntax() != null;
+	public static bool HasClassDiagramAttribute(this BaseNode node) => node.GetClassDiagramAttributeSyntax() != null;
 
 	private static bool GetAttributeBooleanValue(SeparatedSyntaxList<AttributeArgumentSyntax>? arguments, string attributeName)
 	{

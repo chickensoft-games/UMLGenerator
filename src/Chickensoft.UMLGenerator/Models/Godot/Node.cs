@@ -1,7 +1,7 @@
 ﻿namespace Chickensoft.UMLGenerator.Models.Godot;
 
+using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 
@@ -37,8 +37,8 @@ public class Node
     }
     public Node? SelectChild(string[] pathSegments, int index)
     {
-        var child = Children.Where(c => string.Equals(c.Name, pathSegments[index], System.StringComparison.Ordinal))
-            .FirstOrDefault();
+        var child = Children
+            .FirstOrDefault(c => string.Equals(c.Name, pathSegments[index], StringComparison.Ordinal));
         if (child is null)
         {
             return null;

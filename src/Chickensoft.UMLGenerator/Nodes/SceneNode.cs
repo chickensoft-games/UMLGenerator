@@ -4,7 +4,7 @@ using Godot;
 using Helpers;
 using Microsoft.CodeAnalysis;
 
-public class NodeHierarchy(TscnListener listener, AdditionalText additionalText, GenerationData data) : BaseHierarchy(data)
+public class SceneNode(TscnListener listener, AdditionalText additionalText, GenerationData data) : BaseNode(data)
 {
 	public Node? Node { get; } = listener.RootNode;
 	public override string? FullFilePath { get; } = additionalText.Path.NormalizePath();

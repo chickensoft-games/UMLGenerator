@@ -52,7 +52,7 @@ public class UMLGenerator : IIncrementalGenerator
 
 	private void GenerateDiagram(SourceProductionContext context, GenerationData data)
 	{
-		Dictionary<string, BaseHierarchy> hierarchyList = [];
+		Dictionary<string, BaseNode> hierarchyList = [];
 		//Look at all TSCN's in the project which are marked as AdditionalFiles
 		foreach (var additionalText in data.TscnFiles)
 		{
@@ -62,8 +62,8 @@ public class UMLGenerator : IIncrementalGenerator
 
 			var listener = TscnHelpers.RunTscnBaseListener(tscnContent!, context.ReportDiagnostic, additionalText.Path);
 
-			var nodeHierarchy = new NodeHierarchy(listener, additionalText, data);
-			hierarchyList.Add(nodeHierarchy.Name, nodeHierarchy);
+			var sceneNode = new SceneNode(listener, additionalText, data);
+			hierarchyList.Add(sceneNode.Name, sceneNode);
 		}
 
 		//Look at all TypedFiles
@@ -71,21 +71,21 @@ public class UMLGenerator : IIncrementalGenerator
 			         .GroupBy(x => x.SemanticModel.SyntaxTree.FilePath))
 		{
 			var name = Path.GetFileNameWithoutExtension(syntaxContextGrouping.Key);
-			if (!hierarchyList.TryGetValue(name, out var nodeHierarchy))
+			if (!hierarchyList.TryGetValue(name, out var sceneNode))
 			{
-				var typeHierarchy = new TypeHierarchy(syntaxContextGrouping, data);
-				hierarchyList.Add(name, typeHierarchy);
+				var classNode = new ClassNode(syntaxContextGrouping, data);
+				hierarchyList.Add(name, classNode);
 			}
 			else
 			{
-				var nodeContextList = nodeHierarchy.ContextList;
+				var nodeContextList = sceneNode.ContextList;
 				nodeContextList.AddRange(syntaxContextGrouping.ToList());
 			}
 		}
 
 		var nodesWithAttribute = hierarchyList.Values.Where(x => x.HasClassDiagramAttribute());
 
-		var pumlWriter = new PumlWriter(hierarchyList, data);
+		var pumlWriter = new PumlWriter(hierarchyList);
 
 		foreach (var hierarchy in hierarchyList.Values)
 		{
@@ -103,7 +103,9 @@ public class UMLGenerator : IIncrementalGenerator
 			var source =
 			$"""
 			@startuml
-			{pumlWriter.GetDiagram(node, depth, classDiagramAttribute)}
+			
+			{pumlWriter.GetDiagram(node, depth, 0, classDiagramAttribute)}
+			
 			@enduml
 			""";
 			var destFile = Path.Combine(data.ProjectDir!, filePath);
