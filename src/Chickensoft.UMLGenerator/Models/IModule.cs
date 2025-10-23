@@ -16,7 +16,7 @@ public interface IModule
 	int Order { get; }
 	string Title { get; }
 	List<ModuleItem> SetupModule(BaseHierarchy hierarchy, IDictionary<string, BaseHierarchy> nodeHierarchyList);
-	public IEnumerable<string> InvokeModule(BaseHierarchy hierarchy, bool useVSCodePaths, int depth);
+	public IEnumerable<string> InvokeModule(BaseHierarchy hierarchy, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth);
 }
 
 public enum ModuleOrder

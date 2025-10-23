@@ -111,12 +111,13 @@ public class PumlWriter
 		var outputList = new Dictionary<Type, List<string>>();
 		var orderedModules = hierarchy.ModuleItems.OrderBy(x => _modules[x.Key].Order);
 
-		foreach (var moduleItem in orderedModules)
+		foreach (var modulePair in orderedModules)
 		{
-			var module = _modules[moduleItem.Key];
+			var module = _modules[modulePair.Key];
+			var moduleItems = modulePair.Value;
 
 			var moduleString = module
-				.InvokeModule(hierarchy, useVsCodePaths, depth)
+				.InvokeModule(hierarchy, moduleItems, useVsCodePaths, depth)
 				.ToList();
 
 			List<string> finalString = ["", module.Title, ..moduleString];
@@ -124,7 +125,7 @@ public class PumlWriter
 			finalString = finalString.Select(x => depthPadding2 + x)
 				.ToList();
 
-			outputList.Add(moduleItem.Key, finalString);
+			outputList.Add(modulePair.Key, finalString);
 		}
 
 		var mergedList = outputList.Values.SelectMany(x => x);

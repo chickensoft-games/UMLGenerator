@@ -38,11 +38,10 @@ public class PrimaryConstructorModule : IModule
 		return items;
 	}
 
-	public IEnumerable<string> InvokeModule(BaseHierarchy hierarchy, bool useVSCodePaths, int depth)
+	public IEnumerable<string> InvokeModule(BaseHierarchy hierarchy, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
 	{
 		var parentScriptPath = hierarchy.GetScriptPath(useVSCodePaths, depth);
-		var items = hierarchy.ModuleItems[typeof(PrimaryConstructorModule)] ?? [];
-		foreach (var module in items)
+		foreach (var module in moduleItems)
 		{
 			var childScript =  module.Hierarchy?.GetScriptPath(useVSCodePaths, depth);
 			yield return $"[[{parentScriptPath}:{module.LineNumber} {module.Name}]] - [[{childScript} Script]]";

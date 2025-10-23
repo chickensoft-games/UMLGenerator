@@ -39,11 +39,10 @@ public class InterfaceMethodModule : IModule
 		return items;
 	}
 
-	public IEnumerable<string> InvokeModule(BaseHierarchy hierarchy, bool useVSCodePaths, int depth)
+	public IEnumerable<string> InvokeModule(BaseHierarchy hierarchy, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
 	{
 		var parentScriptPath = hierarchy.GetScriptPath(useVSCodePaths, depth);
-		var items = hierarchy.ModuleItems[typeof(MethodModule)] ?? [];
-		foreach (var module in items)
+		foreach (var module in moduleItems)
 		{
 			yield return $"[[{parentScriptPath}:{module.LineNumber} {module.Name}()]]";
 		}
