@@ -1,26 +1,39 @@
 ﻿@startuml
 
 package Game-Scene [[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Game.tscn]] {
-	
-class Game  {
-	[[vscode://file/{ProjectDirectory}Game/Game.cs ScriptFile]]
-	[Provisions]
-	[[vscode://file/{ProjectDirectory}Game/Game.cs:15 IGameRepo]] - [[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Domain/GameRepo.cs Script]]
---
-[[vscode://file/{ProjectDirectory}Game/Game.cs:22 GameLogic]] - [[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Logic/GameLogic.cs Script]]
-	[[vscode://file/{ProjectDirectory}Game/Game.cs:21 GameRepo]] - [[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Domain/GameRepo.cs Script]]
-}
-
-	
-class GameRepo  {
-	[[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Domain/GameRepo.cs ScriptFile]]
---
-+ [[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Domain/GameRepo.cs:15 Instantiator]]
---
-[[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Domain/GameRepo.cs:17 CreateInstantiator()]]
-}
-
-	Game::GameRepo --> GameRepo
+    class Game  {
+        [[vscode://file/{ProjectDirectory}Game/Game.cs ScriptFile]]
+        [Provisions]
+        [[vscode://file/{ProjectDirectory}Game/Game.cs:15 IGameRepo]] - [[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Domain/GameRepo.cs Script]]
+        --
+        [Properties]
+        [[vscode://file/{ProjectDirectory}Game/Game.cs:23 AppBinding]]
+        [[vscode://file/{ProjectDirectory}Game/Game.cs:22 GameLogic]] - [[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Logic/GameLogic.cs Script]]
+        [[vscode://file/{ProjectDirectory}Game/Game.cs:21 GameRepo]] - [[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Domain/GameRepo.cs Script]]
+        --
+        [Methods]
+        [[vscode://file/{ProjectDirectory}Game/Game.cs:29 _Notification()]]
+        [[vscode://file/{ProjectDirectory}Game/Game.cs:47 OnExitTree()]]
+        [[vscode://file/{ProjectDirectory}Game/Game.cs:40 OnResolved()]]
+        [[vscode://file/{ProjectDirectory}Game/Game.cs:31 Setup()]]
+    }
+    class GameLogic  {
+        [[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Logic/GameLogic.cs ScriptFile]]
+        [Methods]
+        [[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Logic/GameLogic.cs:12 GetInitialState()]]
+    }
+    class GameRepo  {
+        [[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Domain/GameRepo.cs ScriptFile]]
+        [Interface Properties]
+        [[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Domain/GameRepo.cs:15 Instantiator]]
+        --
+        [Interface Methods]
+        [[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Domain/GameRepo.cs:17 CreateInstantiator()]]
+        [Methods]
+        [[vscode://file/{ProjectDirectory}TestCases/BaseProject_VSCode/Domain/GameRepo.cs:24 Dispose()]]
+    }
+    Game::GameLogic ---> GameLogic
+    Game::GameRepo ---> GameRepo
 }
 
 @enduml

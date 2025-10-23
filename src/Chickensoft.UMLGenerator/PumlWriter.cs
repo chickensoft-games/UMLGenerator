@@ -98,7 +98,6 @@ public class PumlWriter
 			  {{typeDefinition}}
 			  {{childrenDefinitions}}
 			  {{childrenRelationships}}
-			  {{depthPadding}}
 			  {{depthPadding}}}
 			  """;
 	}
@@ -136,13 +135,12 @@ public class PumlWriter
 			{
 				var result = x
 					.ToList()
-					.SelectMany(y => y.Value)
-					.Append("--");
-				return result;
-			})
-			.SelectMany(x => x);
+					.SelectMany(y => y.Value);
+				var join = string.Join("\n", result);
+				return join;
+			});
 
-		var moduleOutput = string.Join("\n", mergedList);
+		var moduleOutput = string.Join($"\n{depthPadding2}--\n", mergedList);
 		var hasScript = node.ContextList.Any();
 
 		var newFilePath = useVsCodePaths ?
