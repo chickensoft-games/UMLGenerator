@@ -1,4 +1,4 @@
-namespace Chickensoft.UMLGenerator.PumlModules;
+namespace Chickensoft.UMLGenerator.Modules;
 
 using System.Collections.Generic;
 using System.Linq;
@@ -11,11 +11,11 @@ public class MethodModule : IModule
 {
 	public int Order => (int)ModuleOrder.Last;
 	public string Title => "[Methods]";
-	public List<ModuleItem> SetupModule(BaseHierarchy hierarchy, IDictionary<string, BaseHierarchy> nodeHierarchyList)
+	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
 	{
-		var baseTypeSyntax = hierarchy.TypeSyntax;
-		var hierarchyContext = hierarchy.SemanticModel;
-		var interfaceMethods = hierarchy.InterfaceSyntax?.Members.OfType<MethodDeclarationSyntax>() ?? [];
+		var baseTypeSyntax = node.TypeSyntax;
+		var hierarchyContext = node.SemanticModel;
+		var interfaceMethods = node.InterfaceSyntax?.Members.OfType<MethodDeclarationSyntax>() ?? [];
 		if (baseTypeSyntax == null)
 			return [];
 
@@ -42,9 +42,9 @@ public class MethodModule : IModule
 		return items;
 	}
 
-	public IEnumerable<string> InvokeModule(BaseHierarchy hierarchy, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
+	public IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
 	{
-		var parentScriptPath = hierarchy.GetScriptPath(useVSCodePaths, depth);
+		var parentScriptPath = node.GetScriptPath(useVSCodePaths, depth);
 		foreach (var module in moduleItems)
 		{
 			yield return $"[[{parentScriptPath}:{module.LineNumber} {module.Name}()]]";

@@ -1,11 +1,10 @@
-namespace Chickensoft.UMLGenerator.PumlModules;
+namespace Chickensoft.UMLGenerator.Models;
 
 using System.Collections.Generic;
-using Models;
 
 public class ModuleItem
 {
-	public BaseHierarchy? Hierarchy { get; set; }
+	public BaseNode? Node { get; set; }
 	public string TypeName { get; set; }
 	public string? Name { get; set; }
 	public int LineNumber { get; set; }
@@ -15,8 +14,8 @@ public interface IModule
 {
 	int Order { get; }
 	string Title { get; }
-	List<ModuleItem> SetupModule(BaseHierarchy hierarchy, IDictionary<string, BaseHierarchy> nodeHierarchyList);
-	public IEnumerable<string> InvokeModule(BaseHierarchy hierarchy, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth);
+	List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList);
+	public IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth);
 }
 
 public enum ModuleOrder

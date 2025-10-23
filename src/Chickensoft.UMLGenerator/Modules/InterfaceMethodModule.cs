@@ -1,4 +1,4 @@
-namespace Chickensoft.UMLGenerator.PumlModules;
+namespace Chickensoft.UMLGenerator.Modules;
 
 using System.Collections.Generic;
 using System.Linq;
@@ -10,15 +10,15 @@ public class InterfaceMethodModule : IModule
 {
 	public int Order => (int)ModuleOrder.Last;
 	public string Title => "[Interface Methods]";
-	public List<ModuleItem> SetupModule(BaseHierarchy hierarchy, IDictionary<string, BaseHierarchy> nodeHierarchyList)
+	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
 	{
-		var baseTypeSyntax = hierarchy.TypeSyntax;
+		var baseTypeSyntax = node.TypeSyntax;
 		if (baseTypeSyntax == null)
 			return [];
 
 		var methodDeclarations =
-			from interfaceMember in hierarchy.InterfaceSyntax?.Members ?? []
-			from typeMember in hierarchy.TypeSyntax?.Members ?? []
+			from interfaceMember in node.InterfaceSyntax?.Members ?? []
+			from typeMember in node.TypeSyntax?.Members ?? []
 			where typeMember is MethodDeclarationSyntax typeMethod &&
 			      interfaceMember is MethodDeclarationSyntax interfaceMethod &&
 			      typeMethod.Identifier.Value == interfaceMethod.Identifier.Value
@@ -39,9 +39,9 @@ public class InterfaceMethodModule : IModule
 		return items;
 	}
 
-	public IEnumerable<string> InvokeModule(BaseHierarchy hierarchy, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
+	public IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
 	{
-		var parentScriptPath = hierarchy.GetScriptPath(useVSCodePaths, depth);
+		var parentScriptPath = node.GetScriptPath(useVSCodePaths, depth);
 		foreach (var module in moduleItems)
 		{
 			yield return $"[[{parentScriptPath}:{module.LineNumber} {module.Name}()]]";

@@ -6,9 +6,8 @@ using System.IO;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using PumlModules;
 
-public abstract class BaseHierarchy(GenerationData data)
+public abstract class BaseNode(GenerationData data)
 {
 	private readonly Dictionary<Type, List<ModuleItem>> _moduleItems = [];
 	public IReadOnlyDictionary<Type, List<ModuleItem>> ModuleItems => _moduleItems;

@@ -1,4 +1,4 @@
-namespace Chickensoft.UMLGenerator.PumlModules;
+namespace Chickensoft.UMLGenerator.Modules;
 
 using System.Collections.Generic;
 using System.Linq;
@@ -10,9 +10,9 @@ public class PrimaryConstructorModule : IModule
 {
 	public int Order => (int)ModuleOrder.Middle;
 	public string Title => "[Primary Constructors]";
-	public List<ModuleItem> SetupModule(BaseHierarchy hierarchy, IDictionary<string, BaseHierarchy> nodeHierarchyList)
+	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
 	{
-		var baseTypeSyntax = hierarchy.TypeSyntax;
+		var baseTypeSyntax = node.TypeSyntax;
 		if (baseTypeSyntax == null)
 			return [];
 
@@ -23,13 +23,13 @@ public class PrimaryConstructorModule : IModule
 		{
 			var typeName = ctx.Type?.ToFullString().Trim();
 			var typeWithoutInterface = typeName?.TrimStart('I').Trim();
-			if (!nodeHierarchyList.TryGetValue(typeName, out var childNodeHierarchy) &&
-			    !nodeHierarchyList.TryGetValue(typeWithoutInterface, out childNodeHierarchy))
+			if (!sceneNodeList.TryGetValue(typeName, out var childClassNode) &&
+			    !sceneNodeList.TryGetValue(typeWithoutInterface, out childClassNode))
 				continue;
 
 			items.Add(new ModuleItem
 			{
-				Hierarchy = childNodeHierarchy,
+				Node = childClassNode,
 				Name = ctx.Identifier.ToString(),
 				TypeName = typeName
 			});
@@ -38,12 +38,12 @@ public class PrimaryConstructorModule : IModule
 		return items;
 	}
 
-	public IEnumerable<string> InvokeModule(BaseHierarchy hierarchy, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
+	public IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
 	{
-		var parentScriptPath = hierarchy.GetScriptPath(useVSCodePaths, depth);
+		var parentScriptPath = node.GetScriptPath(useVSCodePaths, depth);
 		foreach (var module in moduleItems)
 		{
-			var childScript =  module.Hierarchy?.GetScriptPath(useVSCodePaths, depth);
+			var childScript =  module.Node?.GetScriptPath(useVSCodePaths, depth);
 			yield return $"[[{parentScriptPath}:{module.LineNumber} {module.Name}]] - [[{childScript} Script]]";
 		}
 	}

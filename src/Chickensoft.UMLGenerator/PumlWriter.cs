@@ -6,16 +6,16 @@ using System.Linq;
 using System.Reflection;
 using Helpers;
 using Models;
-using PumlModules;
+using Modules;
 
 public class PumlWriter
 {
-	private readonly IDictionary<string, BaseHierarchy> _nodeHierarchyList;
+	private readonly IDictionary<string, BaseNode> _sceneNodeList;
 	private readonly Dictionary<Type, IModule> _modules;
 
-	public PumlWriter(IDictionary<string, BaseHierarchy> nodeHierarchyList)
+	public PumlWriter(IDictionary<string, BaseNode> sceneNodeList)
 	{
-		_nodeHierarchyList = nodeHierarchyList;
+		_sceneNodeList = sceneNodeList;
 		var interfaceType = typeof(IModule);
 
 		var navTypes = Assembly.GetExecutingAssembly().GetTypes()
@@ -26,39 +26,39 @@ public class PumlWriter
 		_modules = navTypes.Select(type => (IModule)Activator.CreateInstance(type)!).ToDictionary(x => x.GetType(), x => x);
 	}
 
-	public void GenerateHierarchy(BaseHierarchy hierarchy)
+	public void GenerateHierarchy(BaseNode node)
 	{
 		foreach (var module in _modules.Values)
 		{
-			var output = module.SetupModule(hierarchy, _nodeHierarchyList);
+			var output = module.SetupModule(node, _sceneNodeList);
 			if (output.Count > 0)
 			{
-				hierarchy.AddModule(module.GetType(), output);
+				node.AddModule(module.GetType(), output);
 			}
 		}
 	}
 
-	public string GetDiagram(BaseHierarchy hierarchy, int depth, int fileDepth, ClassDiagramAttribute attribute)
+	public string GetDiagram(BaseNode node, int depth, int fileDepth, ClassDiagramAttribute attribute)
 	{
-		var childrenToDraw = hierarchy.ModuleItems
+		var childrenToDraw = node.ModuleItems
 			.Where(x =>
 				x.Key == typeof(PropertyModule) ||
 				x.Key == typeof(NodeModule))
 			.Select(x => x.Value)
 			.SelectMany(x => x)
-			.Select(x => x.Hierarchy)
+			.Select(x => x.Node)
 			.Where(x => x?.ModuleItems.Any() ?? false).Distinct().ToList();
 
 		var typeDepth = childrenToDraw.Count > 0 ? fileDepth + 1 : fileDepth;
 
-		var typeDefinition = GetTypeDefinition(hierarchy, depth, typeDepth, attribute);
+		var typeDefinition = GetTypeDefinition(node, depth, typeDepth, attribute);
 
 		if (childrenToDraw.Count == 0)
 			return typeDefinition;
 
 		var newFilePath = attribute.UseVSCodePaths ?
-			HierarchyExtensions.GetVSCodePath(hierarchy.FullFilePath) :
-			HierarchyExtensions.GetPathWithDepth(hierarchy.FilePath, depth);
+			NodeExtensions.GetVSCodePath(node.FullFilePath) :
+			NodeExtensions.GetPathWithDepth(node.FilePath, depth);
 
 		var childrenDefinitions = string.Join("\n",
 			childrenToDraw.Select(x =>
@@ -71,20 +71,20 @@ public class PumlWriter
 		var childrenRelationships = string.Join("\n",
 			childrenToDraw.Select(x =>
 			{
-				var memberName = (hierarchy as NodeHierarchy)?
+				var memberName = (node as SceneNode)?
 				                 .Node?
 				                 .AllChildren
 				                 .FirstOrDefault(node => node.Type == x.Name)?.Name
 				                 ?? x.Name;
 
-				return $"{relationPadding}{hierarchy.Name}::{memberName} {(x.ModuleItems.Count == 0 ? string.Empty : "-")}--> {x.Name}";
+				return $"{relationPadding}{node.Name}::{memberName} {(x.ModuleItems.Count == 0 ? string.Empty : "-")}--> {x.Name}";
 			})
 		);
 
-		var packageType = hierarchy switch
+		var packageType = node switch
 		{
-			TypeHierarchy => "Type",
-			NodeHierarchy => "Scene",
+			ClassNode => "Type",
+			SceneNode => "Scene",
 			_ => throw new NotImplementedException()
 		};
 
@@ -92,7 +92,7 @@ public class PumlWriter
 
 		return
 			$$"""
-			  {{depthPadding}}package {{hierarchy.Name}}-{{packageType}} [[{{newFilePath}}]] {
+			  {{depthPadding}}package {{node.Name}}-{{packageType}} [[{{newFilePath}}]] {
 			  {{depthPadding}}{{typeDefinition}}
 			  {{childrenDefinitions}}
 			  {{childrenRelationships}}
@@ -101,7 +101,7 @@ public class PumlWriter
 			  """;
 	}
 
-	private string GetTypeDefinition(BaseHierarchy hierarchy, int depth, int fileDepth, ClassDiagramAttribute classDiagramAttribute)
+	private string GetTypeDefinition(BaseNode node, int depth, int fileDepth, ClassDiagramAttribute classDiagramAttribute)
 	{
 		var depthPadding = new string(' ', fileDepth * 4);
 		var depthPadding2 = new string(' ', (fileDepth + 1) * 4);
@@ -109,7 +109,7 @@ public class PumlWriter
 		var useVsCodePaths = classDiagramAttribute.UseVSCodePaths;
 
 		var outputList = new Dictionary<Type, List<string>>();
-		var orderedModules = hierarchy.ModuleItems.OrderBy(x => _modules[x.Key].Order);
+		var orderedModules = node.ModuleItems.OrderBy(x => _modules[x.Key].Order);
 
 		foreach (var modulePair in orderedModules)
 		{
@@ -117,7 +117,7 @@ public class PumlWriter
 			var moduleItems = modulePair.Value;
 
 			var moduleString = module
-				.InvokeModule(hierarchy, moduleItems, useVsCodePaths, depth)
+				.InvokeModule(node, moduleItems, useVsCodePaths, depth)
 				.ToList();
 
 			List<string> finalString = ["", module.Title, ..moduleString];
@@ -130,11 +130,11 @@ public class PumlWriter
 
 		var mergedList = outputList.Values.SelectMany(x => x);
 		var moduleOutput = string.Join("\t\n", mergedList);
-		var hasScript = hierarchy.ContextList.Any();
+		var hasScript = node.ContextList.Any();
 
 		var newFilePath = useVsCodePaths ?
-			HierarchyExtensions.GetVSCodePath(hierarchy.FullFilePath) :
-			HierarchyExtensions.GetPathWithDepth(hierarchy.FilePath, depth);
+			NodeExtensions.GetVSCodePath(node.FullFilePath) :
+			NodeExtensions.GetPathWithDepth(node.FilePath, depth);
 
 		var fileType = hasScript ? "Script" : "Scene";
 
@@ -143,7 +143,7 @@ public class PumlWriter
 		return
 		$$"""
 
-		{{depthPadding}}class {{hierarchy.Name}} {{spotCharacter}} {
+		{{depthPadding}}class {{node.Name}} {{spotCharacter}} {
 		{{depthPadding2}}[[{{newFilePath}} {{fileType}}File]]
 		{{depthPadding}}{{moduleOutput}}
 		{{depthPadding}}}
