@@ -68,16 +68,20 @@ public class PumlWriter
 
 		var relationPadding = new string(' ', typeDepth * 4);
 
+		var onlyHasDI = node.ModuleItems.All(y => y.Key == typeof(DependencyInjectionModule));
+
 		var childrenRelationships = string.Join("\n",
 			childrenToDraw.Select(x =>
 			{
-				var memberName = (node as SceneNode)?
-				                 .Node?
-				                 .AllChildren
-				                 .FirstOrDefault(node => node.Type == x.Name)?.Name
-				                 ?? x.Name;
+				var memberRelationship = onlyHasDI
+					? string.Empty
+					: "::" + ((node as SceneNode)?
+					  .Node?
+					  .AllChildren
+					  .FirstOrDefault(child => child.Type == x.Name)?.Name
+					  ?? x.Name);
 
-				return $"{relationPadding}{node.Name}::{memberName} {(x.ModuleItems.Count == 0 ? string.Empty : "-")}--> {x.Name}";
+				return $"{relationPadding}{node.Name}{memberRelationship} {(x.ModuleItems.Count == 0 ? string.Empty : "-")}--> {x.Name}";
 			})
 		);
 

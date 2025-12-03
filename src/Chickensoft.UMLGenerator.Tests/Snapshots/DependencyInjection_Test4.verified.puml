@@ -13,7 +13,7 @@ package Test4-Type [[../../TestCases/DependencyInjection/Test4.cs]] {
         [[../../TestCases/DependencyInjection/Test.cs:9 Test]]([[../../TestCases/DependencyInjection/Test2.cs Test2]] test2)
         [[../../TestCases/DependencyInjection/Test.cs:10 Test]]()
     }
-    Test4::Test ---> Test
+    Test4 ---> Test
 }
 
 @enduml
