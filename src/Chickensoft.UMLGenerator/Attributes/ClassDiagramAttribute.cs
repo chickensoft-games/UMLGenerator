@@ -10,4 +10,6 @@ public class ClassDiagramAttribute : Attribute
 	/// vscode:// url protocol. This allows them to be used with the VSCode plugin.
 	/// </summary>
 	public bool UseVSCodePaths { get; set; }
+
+	public bool GetAllTopLevelNodes { get; set; }
 }

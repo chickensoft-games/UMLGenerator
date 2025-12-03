@@ -10,6 +10,8 @@ using Modules;
 
 public class PumlWriter
 {
+	public IReadOnlyDictionary<Type, IModule> Modules => _modules;
+
 	private readonly IDictionary<string, BaseNode> _sceneNodeList;
 	private readonly Dictionary<Type, IModule> _modules;
 

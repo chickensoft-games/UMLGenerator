@@ -13,7 +13,8 @@ public static class AttributeExtensions
 		var arguments = attribute?.ArgumentList?.Arguments;
 		return new ClassDiagramAttribute()
 		{
-			UseVSCodePaths = GetAttributeBooleanValue(arguments, nameof(ClassDiagramAttribute.UseVSCodePaths))
+			UseVSCodePaths = GetAttributeBooleanValue(arguments, nameof(ClassDiagramAttribute.UseVSCodePaths)),
+			GetAllTopLevelNodes = GetAttributeBooleanValue(arguments, nameof(ClassDiagramAttribute.GetAllTopLevelNodes))
 		};
 	}
 

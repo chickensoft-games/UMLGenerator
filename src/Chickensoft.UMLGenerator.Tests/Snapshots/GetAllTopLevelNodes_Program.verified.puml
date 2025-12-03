@@ -1,0 +1,49 @@
+﻿@startuml
+
+package Test4-Type [[../../TestCases/GetAllTopLevelNodes/Test4.cs]] {
+    class Test4  {
+        [[../../TestCases/GetAllTopLevelNodes/Test4.cs ScriptFile]]
+
+    }
+    class Test  {
+        [[../../TestCases/GetAllTopLevelNodes/Test.cs ScriptFile]]
+        [Constructors]
+        [[../../TestCases/GetAllTopLevelNodes/Test.cs:7 Test]]([[../../TestCases/GetAllTopLevelNodes/Test2.cs Test2]] test2, [[../../TestCases/GetAllTopLevelNodes/Test3.cs Test3]] test3, [[../../TestCases/GetAllTopLevelNodes/Test4.cs Test4]] test4)
+        [[../../TestCases/GetAllTopLevelNodes/Test.cs:8 Test]]([[../../TestCases/GetAllTopLevelNodes/Test2.cs Test2]] test2, [[../../TestCases/GetAllTopLevelNodes/Test3.cs Test3]] test3)
+        [[../../TestCases/GetAllTopLevelNodes/Test.cs:9 Test]]([[../../TestCases/GetAllTopLevelNodes/Test2.cs Test2]] test2)
+        [[../../TestCases/GetAllTopLevelNodes/Test.cs:10 Test]]()
+    }
+    Test4 ---> Test
+}
+package Test2-Type [[../../TestCases/GetAllTopLevelNodes/Test2.cs]] {
+    class Test2  {
+        [[../../TestCases/GetAllTopLevelNodes/Test2.cs ScriptFile]]
+
+    }
+    class Test  {
+        [[../../TestCases/GetAllTopLevelNodes/Test.cs ScriptFile]]
+        [Constructors]
+        [[../../TestCases/GetAllTopLevelNodes/Test.cs:7 Test]]([[../../TestCases/GetAllTopLevelNodes/Test2.cs Test2]] test2, [[../../TestCases/GetAllTopLevelNodes/Test3.cs Test3]] test3, [[../../TestCases/GetAllTopLevelNodes/Test4.cs Test4]] test4)
+        [[../../TestCases/GetAllTopLevelNodes/Test.cs:8 Test]]([[../../TestCases/GetAllTopLevelNodes/Test2.cs Test2]] test2, [[../../TestCases/GetAllTopLevelNodes/Test3.cs Test3]] test3)
+        [[../../TestCases/GetAllTopLevelNodes/Test.cs:9 Test]]([[../../TestCases/GetAllTopLevelNodes/Test2.cs Test2]] test2)
+        [[../../TestCases/GetAllTopLevelNodes/Test.cs:10 Test]]()
+    }
+    Test2 ---> Test
+}
+package Test3-Type [[../../TestCases/GetAllTopLevelNodes/Test3.cs]] {
+    class Test3  {
+        [[../../TestCases/GetAllTopLevelNodes/Test3.cs ScriptFile]]
+
+    }
+    class Test  {
+        [[../../TestCases/GetAllTopLevelNodes/Test.cs ScriptFile]]
+        [Constructors]
+        [[../../TestCases/GetAllTopLevelNodes/Test.cs:7 Test]]([[../../TestCases/GetAllTopLevelNodes/Test2.cs Test2]] test2, [[../../TestCases/GetAllTopLevelNodes/Test3.cs Test3]] test3, [[../../TestCases/GetAllTopLevelNodes/Test4.cs Test4]] test4)
+        [[../../TestCases/GetAllTopLevelNodes/Test.cs:8 Test]]([[../../TestCases/GetAllTopLevelNodes/Test2.cs Test2]] test2, [[../../TestCases/GetAllTopLevelNodes/Test3.cs Test3]] test3)
+        [[../../TestCases/GetAllTopLevelNodes/Test.cs:9 Test]]([[../../TestCases/GetAllTopLevelNodes/Test2.cs Test2]] test2)
+        [[../../TestCases/GetAllTopLevelNodes/Test.cs:10 Test]]()
+    }
+    Test3 ---> Test
+}
+
+@enduml

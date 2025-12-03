@@ -100,11 +100,34 @@ public class UMLGenerator : IIncrementalGenerator
 			var depth = filePath.Split('\\', '/').Length - 1;
 			var classDiagramAttribute = node.GetClassDiagramAttribute();
 
+			string diagramString;
+
+			if (classDiagramAttribute.GetAllTopLevelNodes)
+			{
+				var topLevelNodes = hierarchyList.Values
+					.Where(topLevelNode => topLevelNode.ModuleItems.Count != 0 && hierarchyList.Values
+						.SelectMany(x => x.ModuleItems)
+						.Where(x => pumlWriter.Modules[x.Key].ShouldDrawChildren)
+						.All(x => x.Value
+							.All(y => y.Node != topLevelNode)));
+
+				var diagramList = topLevelNodes
+					.Select(topLevelNode => pumlWriter
+						.GetDiagram(topLevelNode, depth, 0, classDiagramAttribute))
+					.ToList();
+
+				diagramString = string.Join("\n", diagramList);
+			}
+			else
+			{
+				diagramString = pumlWriter.GetDiagram(node, depth, 0, classDiagramAttribute);
+			}
+
 			var source =
 			$"""
 			@startuml
 			
-			{pumlWriter.GetDiagram(node, depth, 0, classDiagramAttribute)}
+			{diagramString}
 			
 			@enduml
 			""";
