@@ -1,0 +1,19 @@
+﻿@startuml
+
+package Test4-Type [[../../TestCases/DependencyInjection/Test4.cs]] {
+    class Test4  {
+        [[../../TestCases/DependencyInjection/Test4.cs ScriptFile]]
+        
+    }
+    class Test  {
+        [[../../TestCases/DependencyInjection/Test.cs ScriptFile]]
+        [Constructors]
+        [[../../TestCases/DependencyInjection/Test.cs:7 Test]]([[../../TestCases/DependencyInjection/Test2.cs Test2]] test2, [[../../TestCases/DependencyInjection/Test3.cs Test3]] test3, [[../../TestCases/DependencyInjection/Test4.cs Test4]] test4)
+        [[../../TestCases/DependencyInjection/Test.cs:8 Test]]([[../../TestCases/DependencyInjection/Test2.cs Test2]] test2, [[../../TestCases/DependencyInjection/Test3.cs Test3]] test3)
+        [[../../TestCases/DependencyInjection/Test.cs:9 Test]]([[../../TestCases/DependencyInjection/Test2.cs Test2]] test2)
+        [[../../TestCases/DependencyInjection/Test.cs:10 Test]]()
+    }
+    Test4::Test ---> Test
+}
+
+@enduml

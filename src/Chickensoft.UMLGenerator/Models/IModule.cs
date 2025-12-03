@@ -21,7 +21,8 @@ public interface IModule
 
 public enum ModuleOrder
 {
+	Ignore = -1,
 	First = 0,
 	Middle = 100,
-	Last = 200,
+	Last = 200
 }
