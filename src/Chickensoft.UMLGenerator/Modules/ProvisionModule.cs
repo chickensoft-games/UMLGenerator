@@ -10,6 +10,8 @@ public class ProvisionModule : IModule
 {
 	public int Order => (int)ModuleOrder.First;
 	public string Title => "[Provisions]";
+	public bool ShouldDrawChildren => false;
+
 	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
 	{
 		var baseTypeSyntax = node.TypeSyntax;

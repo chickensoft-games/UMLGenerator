@@ -8,6 +8,7 @@ public class NodeModule : IModule
 {
 	public int Order => (int)ModuleOrder.Middle;
 	public string Title => "[Nodes]";
+	public bool ShouldDrawChildren => true;
 
 	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
 	{

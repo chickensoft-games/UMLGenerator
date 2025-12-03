@@ -10,6 +10,8 @@ public class DependencyModule : IModule
 {
 	public int Order => (int)ModuleOrder.First;
 	public string Title => "[Dependencies]";
+	public bool ShouldDrawChildren => false;
+
 	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
 	{
 		var baseTypeSyntax = node.TypeSyntax;

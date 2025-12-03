@@ -42,9 +42,7 @@ public class PumlWriter
 	{
 		var childrenToDraw = node.ModuleItems
 			.Where(x =>
-				(x.Key == typeof(PropertyModule) ||
-				x.Key == typeof(InterfaceModule) ||
-				x.Key == typeof(NodeModule)) &&
+				_modules[x.Key].ShouldDrawChildren &&
 				x.Value.All(y => y.Node != node))
 			.Select(x => x.Value)
 			.SelectMany(x => x)

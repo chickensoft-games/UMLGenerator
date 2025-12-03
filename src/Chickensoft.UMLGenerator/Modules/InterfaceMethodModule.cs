@@ -10,6 +10,8 @@ public class InterfaceMethodModule : IModule
 {
 	public int Order => (int)ModuleOrder.Last;
 	public string Title => "[Interface Methods]";
+	public bool ShouldDrawChildren => false;
+
 	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
 	{
 		var baseTypeSyntax = node.TypeSyntax;

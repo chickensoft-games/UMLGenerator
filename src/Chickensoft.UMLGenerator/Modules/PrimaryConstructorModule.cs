@@ -9,7 +9,9 @@ using Models;
 public class PrimaryConstructorModule : IModule
 {
 	public int Order => (int)ModuleOrder.Middle;
-	public string Title => "[Primary Constructors]";
+	public string Title => "[Primary Constructor]";
+	public bool ShouldDrawChildren => false;
+
 	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
 	{
 		var baseTypeSyntax = node.TypeSyntax;
@@ -31,7 +33,8 @@ public class PrimaryConstructorModule : IModule
 			{
 				Node = childClassNode,
 				Name = ctx.Identifier.ToString(),
-				TypeName = typeName
+				TypeName = typeName,
+				LineNumber = ctx.GetLineNumber()
 			});
 		}
 
@@ -41,10 +44,19 @@ public class PrimaryConstructorModule : IModule
 	public IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
 	{
 		var parentScriptPath = node.GetScriptPath(useVSCodePaths, depth);
+		var typeName = node.TypeSyntax?.Identifier.ToString();
+
+		var stringList = new List<string>();
+
 		foreach (var module in moduleItems)
 		{
 			var childScript =  module.Node?.GetScriptPath(useVSCodePaths, depth);
-			yield return $"[[{parentScriptPath}:{module.LineNumber} {module.Name}]] - [[{childScript} Script]]";
+			stringList.Add($"[[{childScript} {module.TypeName}]] {module.Name}");
 		}
+
+		var parameters = string.Join(", ", stringList);
+		var lineNumber = moduleItems.First().LineNumber;
+
+		return [$"[[{parentScriptPath}:{lineNumber} {typeName}]]({parameters})"];
 	}
 }

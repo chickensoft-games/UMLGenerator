@@ -1,0 +1,9 @@
+﻿@startuml
+
+class Test  {
+    [[../../TestCases/Constructor_Primary/Test.cs ScriptFile]]
+    [Primary Constructor]
+    [[../../TestCases/Constructor_Primary/Test.cs:6 Test]]([[../../TestCases/Constructor_Primary/Test2.cs Test2]] test)
+}
+
+@enduml

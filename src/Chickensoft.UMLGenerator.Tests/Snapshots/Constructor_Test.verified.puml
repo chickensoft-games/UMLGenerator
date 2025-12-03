@@ -1,0 +1,12 @@
+﻿@startuml
+
+class Test  {
+    [[../../TestCases/Constructor/Test.cs ScriptFile]]
+    [Constructors]
+    [[../../TestCases/Constructor/Test.cs:8 Test]]([[../../TestCases/Constructor/Test2.cs Test2]] test2, [[../../TestCases/Constructor/Test3.cs Test3]] test3, [[../../TestCases/Constructor/Test4.cs Test4]] test4)
+    [[../../TestCases/Constructor/Test.cs:9 Test]]([[../../TestCases/Constructor/Test2.cs Test2]] test2, [[../../TestCases/Constructor/Test3.cs Test3]] test3)
+    [[../../TestCases/Constructor/Test.cs:10 Test]]([[../../TestCases/Constructor/Test2.cs Test2]] test2)
+    [[../../TestCases/Constructor/Test.cs:11 Test]]()
+}
+
+@enduml
