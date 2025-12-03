@@ -109,7 +109,8 @@ public class UMLGenerator : IIncrementalGenerator
 						.SelectMany(x => x.ModuleItems)
 						.Where(x => pumlWriter.Modules[x.Key].ShouldDrawChildren)
 						.All(x => x.Value
-							.All(y => y.Node != topLevelNode)));
+							.All(y => y.Node != topLevelNode)))
+					.OrderBy(x => x.Name);
 
 				var diagramList = topLevelNodes
 					.Select(topLevelNode => pumlWriter
