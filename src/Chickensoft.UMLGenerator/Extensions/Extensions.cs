@@ -2,11 +2,11 @@
 
 namespace Chickensoft.UMLGenerator;
 
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.CSharp;
 
 public static class Extensions
 {
-    public static int GetLineNumber(this MemberDeclarationSyntax method)
+    public static int GetLineNumber(this CSharpSyntaxNode method)
     {
         var source = method.SyntaxTree.ToString();
         var subSource = source.Substring(0, method.SpanStart);
