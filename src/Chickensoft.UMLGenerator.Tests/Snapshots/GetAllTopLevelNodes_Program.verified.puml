@@ -3,7 +3,7 @@
 package Test4-Type [[../../TestCases/GetAllTopLevelNodes/Test4.cs]] {
     class Test4  {
         [[../../TestCases/GetAllTopLevelNodes/Test4.cs ScriptFile]]
-
+        
     }
     class Test  {
         [[../../TestCases/GetAllTopLevelNodes/Test.cs ScriptFile]]
@@ -18,7 +18,7 @@ package Test4-Type [[../../TestCases/GetAllTopLevelNodes/Test4.cs]] {
 package Test2-Type [[../../TestCases/GetAllTopLevelNodes/Test2.cs]] {
     class Test2  {
         [[../../TestCases/GetAllTopLevelNodes/Test2.cs ScriptFile]]
-
+        
     }
     class Test  {
         [[../../TestCases/GetAllTopLevelNodes/Test.cs ScriptFile]]
@@ -33,7 +33,7 @@ package Test2-Type [[../../TestCases/GetAllTopLevelNodes/Test2.cs]] {
 package Test3-Type [[../../TestCases/GetAllTopLevelNodes/Test3.cs]] {
     class Test3  {
         [[../../TestCases/GetAllTopLevelNodes/Test3.cs ScriptFile]]
-
+        
     }
     class Test  {
         [[../../TestCases/GetAllTopLevelNodes/Test.cs ScriptFile]]
