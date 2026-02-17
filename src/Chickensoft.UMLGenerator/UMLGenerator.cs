@@ -70,16 +70,19 @@ public class UMLGenerator : IIncrementalGenerator
 		foreach (var syntaxContextGrouping in data.SyntaxContexts
 			         .GroupBy(x => x.SemanticModel.SyntaxTree.FilePath))
 		{
+			var syntaxContext = syntaxContextGrouping.FirstOrDefault(x => x.Node is ClassDeclarationSyntax or StructDeclarationSyntax or RecordDeclarationSyntax);
+			if (syntaxContext.Node is not TypeDeclarationSyntax)
+				continue;
+
 			var name = Path.GetFileNameWithoutExtension(syntaxContextGrouping.Key);
 			if (!hierarchyList.TryGetValue(name, out var sceneNode))
 			{
-				var classNode = new ClassNode(syntaxContextGrouping, data);
+				var classNode = new ClassNode(syntaxContext, data);
 				hierarchyList.Add(name, classNode);
 			}
 			else
 			{
-				var nodeContextList = sceneNode.ContextList;
-				nodeContextList.AddRange(syntaxContextGrouping.ToList());
+				sceneNode.Context = syntaxContext;
 			}
 		}
 

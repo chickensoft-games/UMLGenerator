@@ -5,9 +5,9 @@ using System.Linq;
 using Helpers;
 using Microsoft.CodeAnalysis;
 
-public class ClassNode(IGrouping<string, GeneratorSyntaxContext> contextGrouping, GenerationData data) : BaseNode(data)
+public class ClassNode(GeneratorSyntaxContext context, GenerationData data) : BaseNode(data)
 {
-	public override List<GeneratorSyntaxContext> ContextList { get; } = contextGrouping.ToList();
-	public override string FullFilePath => contextGrouping.Key.NormalizePath();
+	public override GeneratorSyntaxContext? Context { get; set; } = context;
+	public override string FullFilePath => context.SemanticModel.SyntaxTree.FilePath.NormalizePath();
 	public override string FullScriptPath => FullFilePath;
 }

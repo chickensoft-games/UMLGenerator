@@ -145,7 +145,7 @@ public class PumlWriter
 			});
 
 		var moduleOutput = string.Join($"\n{depthPadding2}--\n", mergedList);
-		var hasScript = node.ContextList.Any();
+		var hasScript = node.Context != null;
 
 		var newFilePath = useVsCodePaths ?
 			NodeExtensions.GetVSCodePath(hasScript ? node.FullScriptPath : node.FullFilePath) :

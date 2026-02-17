@@ -5,23 +5,22 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 public abstract class BaseNode(GenerationData data)
 {
 	private readonly Dictionary<Type, List<ModuleItem>> _moduleItems = [];
 	public IReadOnlyDictionary<Type, List<ModuleItem>> ModuleItems => _moduleItems;
-	public virtual List<GeneratorSyntaxContext> ContextList { get; } = [];
+	public virtual GeneratorSyntaxContext? Context { get; set; }
+	public SemanticModel? SemanticModel => Context?.SemanticModel;
 
-	public SemanticModel? SemanticModel => ContextList
-		.Where(x => x.Node is ClassDeclarationSyntax or RecordDeclarationSyntax or StructDeclarationSyntax)
-		.Select(x => x.SemanticModel).FirstOrDefault();
+	public TypeDeclarationSyntax? TypeSyntax => Context?.Node as TypeDeclarationSyntax;
 
-	public TypeDeclarationSyntax? TypeSyntax => ContextList.Select(x => x.Node)
-		.FirstOrDefault(x => x is ClassDeclarationSyntax or RecordDeclarationSyntax or StructDeclarationSyntax) as TypeDeclarationSyntax;
-
-	public InterfaceDeclarationSyntax? InterfaceSyntax => ContextList.Select(x => x.Node)
-		.FirstOrDefault(x => x is InterfaceDeclarationSyntax ctx && ctx.Identifier.ValueText == $"I{Name}") as InterfaceDeclarationSyntax;
+	public InterfaceDeclarationSyntax? InterfaceSyntax => TypeSyntax is null ? null :
+		SemanticModel.GetDeclaredSymbol(TypeSyntax)?.AllInterfaces
+		.FirstOrDefault(x => x.Name == "I" + TypeSyntax.Identifier.Text)
+		?.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() as InterfaceDeclarationSyntax;
 
 	public string FilePath => FullFilePath.Replace($"{data.ProjectDir}", "");
 	public abstract string FullFilePath { get; }

@@ -21,9 +21,8 @@ public static class AttributeExtensions
 	private static AttributeSyntax? GetClassDiagramAttributeSyntax(this BaseNode node)
 	{
 		var attributeName = nameof(ClassDiagramAttribute).Replace("Attribute", "");
-		var classDiagramAttribute = node.ContextList
-			.Select(x => (x.Node as TypeDeclarationSyntax)?.AttributeLists.SelectMany(x => x.Attributes))
-			.SelectMany(x => x)
+		var classDiagramAttribute = node.TypeSyntax?
+			.AttributeLists.SelectMany(x => x.Attributes)
 			.FirstOrDefault(x => x.Name.ToString() == attributeName);
 
 		return classDiagramAttribute;
