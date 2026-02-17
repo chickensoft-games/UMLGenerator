@@ -67,7 +67,7 @@ public class SnapshotTests
 						new Dictionary<string, string>
 						{
 							{
-								"build_property.projectdir", CurrentDir("./")
+								"build_property.projectdir", testFolderPath
 							}
 						}
 					)

@@ -14,7 +14,7 @@ public interface IWorld : INode3D
 
 [SceneTree]
 [Meta(typeof(IAutoNode))]
-public partial class World : Node3D, IWorld,
+public partial class World : Node3D, IWorld
 {
 	[Dependency] public IGameRepo GameRepo => this.DependOn<IGameRepo>();
 }

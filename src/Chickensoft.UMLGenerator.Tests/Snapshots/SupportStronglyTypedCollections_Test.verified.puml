@@ -1,7 +1,7 @@
 ﻿@startuml
 
 class Test  {
-    [[ ScriptFile]]
+    [[/Test.cs ScriptFile]]
 
 }
 

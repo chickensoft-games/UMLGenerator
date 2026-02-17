@@ -1,6 +1,7 @@
 namespace Chickensoft.UMLGenerator.Modules;
 
 using System.Collections.Generic;
+using System.Linq;
 using Helpers;
 using Models;
 
@@ -17,7 +18,7 @@ public class NodeModule : IModule
 		{
 			foreach (var nodeDefinition in sceneNode.Node.AllChildren)
 			{
-				if (!sceneNodeList.TryGetValue(nodeDefinition.Type, out var childSceneNode))
+				if (sceneNodeList.Values.FirstOrDefault(x => x.Name == nodeDefinition.Type) is not { } childSceneNode)
 					continue;
 
 				items.Add(new ModuleItem

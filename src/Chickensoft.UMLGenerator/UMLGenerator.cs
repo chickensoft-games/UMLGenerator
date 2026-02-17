@@ -52,7 +52,8 @@ public class UMLGenerator : IIncrementalGenerator
 
 	private void GenerateDiagram(SourceProductionContext context, GenerationData data)
 	{
-		Dictionary<string, BaseNode> hierarchyList = [];
+		Dictionary<string, SceneNode> sceneNodeList = [];
+
 		//Look at all TSCN's in the project which are marked as AdditionalFiles
 		foreach (var additionalText in data.TscnFiles)
 		{
@@ -63,9 +64,11 @@ public class UMLGenerator : IIncrementalGenerator
 			var listener = TscnHelpers.RunTscnBaseListener(tscnContent!, context.ReportDiagnostic, additionalText.Path);
 
 			var sceneNode = new SceneNode(listener, additionalText, data);
-			hierarchyList.Add(sceneNode.Name, sceneNode);
+			if(sceneNode.FullFilePath != null)
+				sceneNodeList.Add(sceneNode.FullFilePath, sceneNode);
 		}
 
+		Dictionary<string, ClassNode> classNodeList = [];
 		//Look at all TypedFiles
 		foreach (var syntaxContextGrouping in data.SyntaxContexts
 			         .GroupBy(x => x.SemanticModel.SyntaxTree.FilePath))
@@ -75,18 +78,20 @@ public class UMLGenerator : IIncrementalGenerator
 				continue;
 
 			var name = Path.GetFileNameWithoutExtension(syntaxContextGrouping.Key);
-			if (!hierarchyList.TryGetValue(name, out var sceneNode))
+			if (sceneNodeList.Values.FirstOrDefault(x => x.FullScriptPath == syntaxContextGrouping.Key) is not { } sceneNode)
 			{
 				var classNode = new ClassNode(syntaxContext, data);
-				hierarchyList.Add(name, classNode);
+				classNodeList.Add(name, classNode);
 			}
 			else
 			{
 				sceneNode.Context = syntaxContext;
 			}
 		}
+		var hierarchyList = new Dictionary<string, BaseNode>();
 
-		var nodesWithAttribute = hierarchyList.Values.Where(x => x.HasClassDiagramAttribute());
+		foreach (var keyValuePair in sceneNodeList) hierarchyList.Add(keyValuePair.Key, keyValuePair.Value);
+		foreach (var keyValuePair in classNodeList) hierarchyList.Add(keyValuePair.Key, keyValuePair.Value);
 
 		var pumlWriter = new PumlWriter(hierarchyList);
 
@@ -95,12 +100,14 @@ public class UMLGenerator : IIncrementalGenerator
 			pumlWriter.GenerateHierarchy(hierarchy);
 		}
 
+		var nodesWithAttribute = hierarchyList.Values.Where(x => x.HasClassDiagramAttribute());
+
 		foreach (var node in nodesWithAttribute)
 		{
 			var fileName = node.Name + ".g.puml";
 			var filePath = Path.Combine(Path.GetDirectoryName(node.FilePath) ?? string.Empty, fileName);
 
-			var depth = filePath.Split('\\', '/').Length - 1;
+			var depth = filePath.TrimStart('\\', '/').Split('\\', '/').Length - 1;
 			var classDiagramAttribute = node.GetClassDiagramAttribute();
 
 			string diagramString;
@@ -135,7 +142,7 @@ public class UMLGenerator : IIncrementalGenerator
 			
 			@enduml
 			""";
-			var destFile = Path.Combine(data.ProjectDir!, filePath);
+			var destFile = Path.Combine(data.ProjectDir!, filePath.TrimStart("/").ToString());
 			
 			File.WriteAllText(destFile, source);
 		}
