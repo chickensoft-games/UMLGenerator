@@ -28,9 +28,8 @@ public class ConstructorModule : IModule
 			foreach (var ctx in ctxList.Parameters)
 			{
 				var typeName = ctx.Type?.ToFullString().Trim();
-				var typeWithoutInterface = typeName?.TrimStart('I').Trim();
-				if (!sceneNodeList.TryGetValue(typeName, out var childClassNode) &&
-				    !sceneNodeList.TryGetValue(typeWithoutInterface, out childClassNode))
+				var childClassNode = ctx.Type.FindNodeByType(node.SemanticModel, sceneNodeList);
+				if (childClassNode == null)
 					continue;
 
 				items.Add(new ModuleItem

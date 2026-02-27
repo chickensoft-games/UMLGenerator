@@ -22,6 +22,9 @@ public abstract class BaseNode(GenerationData data)
 		.FirstOrDefault(x => x.Name == "I" + TypeSyntax.Identifier.Text)
 		?.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() as InterfaceDeclarationSyntax;
 
+	public string? FullyQualifiedName => TypeSyntax is null ? null :
+		SemanticModel?.GetDeclaredSymbol(TypeSyntax)?.ToDisplayString();
+
 	public string FilePath => FullFilePath.Replace($"{data.ProjectDir}", "");
 	public abstract string FullFilePath { get; }
 	public string ScriptPath => FullScriptPath.Replace($"{data.ProjectDir}", "");

@@ -24,9 +24,8 @@ public class PrimaryConstructorModule : IModule
 		foreach (var ctx in parameterList)
 		{
 			var typeName = ctx.Type?.ToFullString().Trim();
-			var typeWithoutInterface = typeName?.TrimStart('I').Trim();
-			if (!sceneNodeList.TryGetValue(typeName, out var childClassNode) &&
-			    !sceneNodeList.TryGetValue(typeWithoutInterface, out childClassNode))
+			var childClassNode = ctx.Type.FindNodeByType(node.SemanticModel, sceneNodeList);
+			if (childClassNode == null)
 				continue;
 
 			items.Add(new ModuleItem
@@ -50,7 +49,7 @@ public class PrimaryConstructorModule : IModule
 
 		foreach (var module in moduleItems)
 		{
-			var childScript =  module.Node?.GetScriptPath(useVSCodePaths, depth);
+			var childScript = module.Node?.GetScriptPath(useVSCodePaths, depth);
 			stringList.Add($"[[{childScript} {module.TypeName}]] {module.Name}");
 		}
 

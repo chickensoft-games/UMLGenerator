@@ -24,12 +24,12 @@ public class ProvisionModule : IModule
 				?.Identifier.Text == "IProvide").ToList();
 
 		var items = new List<ModuleItem>();
-		foreach (var ctx in  provisionDeclarations)
+		foreach (var ctx in provisionDeclarations)
 		{
-			var typeName = (ctx.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.TypeArgumentList.Arguments[0].ToString();
-			var typeWithoutInterface = typeName?.TrimStart('I').Trim();
-			if (!sceneNodeList.TryGetValue(typeName, out var childClassNode) &&
-			    !sceneNodeList.TryGetValue(typeWithoutInterface, out childClassNode))
+			var typeArgSyntax = (ctx.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.TypeArgumentList.Arguments[0];
+			var typeName = typeArgSyntax?.ToString();
+			var childClassNode = typeArgSyntax.FindNodeByType(node.SemanticModel, sceneNodeList);
+			if (childClassNode == null)
 				continue;
 
 			items.Add(new ModuleItem
@@ -44,14 +44,13 @@ public class ProvisionModule : IModule
 		return items;
 	}
 
-	public IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems,  bool useVSCodePaths, int depth)
+	public IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
 	{
 		var parentScriptPath = node.GetScriptPath(useVSCodePaths, depth);
 		foreach (var module in moduleItems)
 		{
-			var childScript =  module.Node.GetScriptPath(useVSCodePaths, depth);
+			var childScript = module.Node.GetScriptPath(useVSCodePaths, depth);
 			yield return $"[[{parentScriptPath}:{module.LineNumber} {module.Name}]] - [[{childScript} Script]]";
 		}
 	}
-
 }

@@ -77,15 +77,14 @@ public class UMLGenerator : IIncrementalGenerator
 			if (syntaxContext.Node is not TypeDeclarationSyntax)
 				continue;
 
-			var name = Path.GetFileNameWithoutExtension(syntaxContextGrouping.Key);
-			if (sceneNodeList.Values.FirstOrDefault(x => x.FullScriptPath == syntaxContextGrouping.Key) is not { } sceneNode)
+			if (sceneNodeList.Values.FirstOrDefault(x => x.FullScriptPath == syntaxContextGrouping.Key) is { } sceneNode)
 			{
-				var classNode = new ClassNode(syntaxContext, data);
-				classNodeList.Add(name, classNode);
+				sceneNode.Context = syntaxContext;
 			}
 			else
 			{
-				sceneNode.Context = syntaxContext;
+				var classNode = new ClassNode(syntaxContext, data);
+				classNodeList.Add(classNode.FullFilePath, classNode);
 			}
 		}
 		var hierarchyList = new Dictionary<string, BaseNode>();
@@ -142,7 +141,7 @@ public class UMLGenerator : IIncrementalGenerator
 			
 			@enduml
 			""";
-			var destFile = Path.Combine(data.ProjectDir!, filePath.TrimStart("/").ToString());
+			var destFile = Path.Combine(data.ProjectDir!, filePath.TrimStart('/', '\\'));
 			
 			File.WriteAllText(destFile, source);
 		}

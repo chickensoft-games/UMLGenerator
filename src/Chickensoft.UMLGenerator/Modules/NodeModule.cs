@@ -18,7 +18,7 @@ public class NodeModule : IModule
 		{
 			foreach (var nodeDefinition in sceneNode.Node.AllChildren)
 			{
-				if (sceneNodeList.Values.FirstOrDefault(x => x.Name == nodeDefinition.Type) is not { } childSceneNode)
+				if (sceneNodeList.Values.FirstOrDefault(x => (x.TypeSyntax?.Identifier.ToString() ?? x.Name) == nodeDefinition.Type) is not { } childSceneNode)
 					continue;
 
 				items.Add(new ModuleItem
@@ -37,7 +37,7 @@ public class NodeModule : IModule
 	{
 		foreach (var module in moduleItems)
 		{
-			var childScript =  module.Node?.GetScriptPath(useVSCodePaths, depth);
+			var childScript = module.Node?.GetScriptPath(useVSCodePaths, depth);
 			yield return $"{module.Name} - [[{childScript} Script]]";
 		}
 	}

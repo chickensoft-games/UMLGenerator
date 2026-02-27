@@ -34,11 +34,7 @@ public class PropertyModule : IModule
 		foreach (var ctx in propertyDeclarations)
 		{
 			var typeName = ctx.Type.ToString();
-			var typeWithoutInterface = typeName.TrimStart('I').Trim();
-			BaseNode? childClassNode = null;
-			if(sceneNodeList.TryGetValue(typeName, out var value) ||
-			   sceneNodeList.TryGetValue(typeWithoutInterface, out value))
-				childClassNode = value;
+			var childClassNode = ctx.Type.FindNodeByType(node.SemanticModel, sceneNodeList);
 
 			items.Add(new ModuleItem
 			{
@@ -59,8 +55,8 @@ public class PropertyModule : IModule
 		{
 			var result = $"[[{parentScriptPath}:{module.LineNumber} {module.Name}]]";
 
-			var childScript =  module.Node?.GetScriptPath(useVSCodePaths, depth);
-			if(childScript != null)
+			var childScript = module.Node?.GetScriptPath(useVSCodePaths, depth);
+			if (childScript != null)
 				result += $" - [[{childScript} Script]]";
 
 			yield return result;

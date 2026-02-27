@@ -2,6 +2,7 @@ namespace Chickensoft.UMLGenerator.Modules;
 
 using System.Collections.Generic;
 using System.Linq;
+using Helpers;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Models;
 
@@ -26,8 +27,8 @@ public class DependencyInjectionModule : IModule
 				.Select(x => x.ParameterList)
 				.Concat([otherNode.TypeSyntax?.ParameterList]);
 
-			if (constructorParameterList?.Any(paramList => paramList?.Parameters.
-				    Any(paramSyntax => paramSyntax.Type?.ToString() == baseTypeSyntax.Identifier.ToString()) is true) is true)
+			if (constructorParameterList?.Any(paramList => paramList?.Parameters
+				    .Any(paramSyntax => paramSyntax.Type.FindNodeByType(otherNode.SemanticModel, sceneNodeList) == node) is true) is true)
 			{
 				items.Add(new ModuleItem
 				{
