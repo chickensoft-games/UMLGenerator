@@ -48,12 +48,11 @@ public class PumlWriter
 	public string GetDiagram(BaseNode node, int depth, int fileDepth, ClassDiagramAttribute attribute)
 	{
 		var childrenToDraw = node.ModuleItems
-			.Where(x =>
-				_modules[x.Key].ShouldDrawChildren &&
-				x.Value.All(y => y.Node != node))
+			.Where(x => _modules[x.Key].ShouldDrawChildren)
 			.Select(x => x.Value)
 			.SelectMany(x => x)
 			.Select(x => x.Node)
+			.Where(moduleNode => moduleNode != node)
 			.Where(x => x?.ModuleItems.Any() ?? false).Distinct().ToList();
 
 		var typeDepth = childrenToDraw.Count > 0 ? fileDepth + 1 : fileDepth;
