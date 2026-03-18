@@ -12,6 +12,8 @@ public class ProvisionModule : IModule
 	public string Title => "[Provisions]";
 	public bool ShouldDrawChildren => false;
 
+	public void InitModule(IDictionary<string, BaseNode> sceneNodeList) { }
+
 	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
 	{
 		var baseTypeSyntax = node.TypeSyntax;

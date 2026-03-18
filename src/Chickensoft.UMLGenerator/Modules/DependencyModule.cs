@@ -12,6 +12,8 @@ public class DependencyModule : IModule
 	public string Title => "[Dependencies]";
 	public bool ShouldDrawChildren => false;
 
+	public void InitModule(IDictionary<string, BaseNode> sceneNodeList) { }
+
 	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
 	{
 		var baseTypeSyntax = node.TypeSyntax;

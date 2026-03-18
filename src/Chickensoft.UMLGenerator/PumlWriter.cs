@@ -26,6 +26,11 @@ public class PumlWriter
 				interfaceType.IsAssignableFrom(t));
 
 		_modules = navTypes.Select(type => (IModule)Activator.CreateInstance(type)!).ToDictionary(x => x.GetType(), x => x);
+
+		foreach (var module in _modules.Values)
+		{
+			module.InitModule(_sceneNodeList);
+		}
 	}
 
 	public void GenerateHierarchy(BaseNode node)

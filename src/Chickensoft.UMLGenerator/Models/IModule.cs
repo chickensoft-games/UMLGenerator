@@ -16,7 +16,8 @@ public interface IModule
 	string Title { get; }
 	bool ShouldDrawChildren { get; }
 	List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList);
-	public IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth);
+	IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth);
+	void InitModule(IDictionary<string, BaseNode> sceneNodeList);
 }
 
 public enum ModuleOrder

@@ -11,6 +11,8 @@ public class NodeModule : IModule
 	public string Title => "[Nodes]";
 	public bool ShouldDrawChildren => true;
 
+	public void InitModule(IDictionary<string, BaseNode> sceneNodeList) { }
+
 	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
 	{
 		var items = new List<ModuleItem>();
