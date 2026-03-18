@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Helpers;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Models;
@@ -52,7 +53,8 @@ public class UMLGenerator : IIncrementalGenerator
 
 	private void GenerateDiagram(SourceProductionContext context, GenerationData data)
 	{
-		Dictionary<string, SceneNode> sceneNodeList = [];
+		var sceneNodeList = new Dictionary<string, SceneNode>(StringComparer.OrdinalIgnoreCase);
+		var classNodeList = new Dictionary<string, ClassNode>(StringComparer.OrdinalIgnoreCase);
 
 		//Look at all TSCN's in the project which are marked as AdditionalFiles
 		foreach (var additionalText in data.TscnFiles)
@@ -68,7 +70,6 @@ public class UMLGenerator : IIncrementalGenerator
 				sceneNodeList.Add(sceneNode.FullFilePath, sceneNode);
 		}
 
-		Dictionary<string, ClassNode> classNodeList = [];
 		//Look at all TypedFiles
 		foreach (var syntaxContextGrouping in data.SyntaxContexts
 			         .GroupBy(x => x.SemanticModel.SyntaxTree.FilePath))
@@ -87,10 +88,13 @@ public class UMLGenerator : IIncrementalGenerator
 				classNodeList.Add(classNode.FullFilePath, classNode);
 			}
 		}
-		var hierarchyList = new Dictionary<string, BaseNode>();
 
-		foreach (var keyValuePair in sceneNodeList) hierarchyList.Add(keyValuePair.Key, keyValuePair.Value);
-		foreach (var keyValuePair in classNodeList) hierarchyList.Add(keyValuePair.Key, keyValuePair.Value);
+		var hierarchyList = new Dictionary<string, BaseNode>(sceneNodeList.Count + classNodeList.Count, StringComparer.OrdinalIgnoreCase);
+
+		foreach (var keyValuePair in sceneNodeList)
+			hierarchyList.Add(keyValuePair.Key, keyValuePair.Value);
+		foreach (var keyValuePair in classNodeList)
+			hierarchyList.Add(keyValuePair.Key, keyValuePair.Value);
 
 		var pumlWriter = new PumlWriter(hierarchyList);
 
@@ -99,7 +103,7 @@ public class UMLGenerator : IIncrementalGenerator
 			pumlWriter.GenerateHierarchy(hierarchy);
 		}
 
-		var nodesWithAttribute = hierarchyList.Values.Where(x => x.HasClassDiagramAttribute());
+		var nodesWithAttribute = hierarchyList.Values.Where(x => x.HasClassDiagramAttribute()).ToList();
 
 		foreach (var node in nodesWithAttribute)
 		{
@@ -113,38 +117,46 @@ public class UMLGenerator : IIncrementalGenerator
 
 			if (classDiagramAttribute.GetAllTopLevelNodes)
 			{
-				var topLevelNodes = hierarchyList.Values
-					.Where(topLevelNode => topLevelNode.ModuleItems.Count != 0 && hierarchyList.Values
-						.SelectMany(x => x.ModuleItems)
-						.Where(x => pumlWriter.Modules[x.Key].ShouldDrawChildren)
-						.All(x => x.Value
-							.All(y => y.Node != topLevelNode)))
-					.OrderBy(x => x.Name);
+				var referencedNodes = new HashSet<BaseNode>();
+				foreach (var baseNode in hierarchyList.Values)
+				{
+					foreach (var moduleItem in baseNode.ModuleItems)
+					{
+						if (pumlWriter.Modules[moduleItem.Key].ShouldDrawChildren)
+						{
+							foreach (var item in moduleItem.Value)
+							{
+								if (item.Node != null)
+									referencedNodes.Add(item.Node);
+							}
+						}
+					}
+				}
 
-				var diagramList = topLevelNodes
-					.Select(topLevelNode => pumlWriter
-						.GetDiagram(topLevelNode, depth, 0, classDiagramAttribute))
+				var topLevelNodes = hierarchyList.Values
+					.Where(topLevelNode => topLevelNode.ModuleItems.Count != 0 && !referencedNodes.Contains(topLevelNode))
+					.OrderBy(x => x.Name)
 					.ToList();
 
-				diagramString = string.Join("\n", diagramList);
+				var sb = new StringBuilder(topLevelNodes.Count * 1024);
+				for (var i = 0; i < topLevelNodes.Count; i++)
+				{
+					if (i > 0) sb.Append('\n');
+					sb.Append(pumlWriter.GetDiagram(topLevelNodes[i], depth, 0, classDiagramAttribute));
+				}
+
+				diagramString = sb.ToString();
 			}
 			else
 			{
 				diagramString = pumlWriter.GetDiagram(node, depth, 0, classDiagramAttribute);
 			}
 
-			var source =
-			$"""
-			@startuml
-			
-			{diagramString}
-			
-			@enduml
-			""";
 			var destFile = Path.Combine(data.ProjectDir!, filePath.TrimStart('/', '\\'));
-			
+
+			var source = string.Concat("@startuml\n\n", diagramString, "\n\n@enduml");
 			File.WriteAllText(destFile, source);
 		}
-		
+
 	}
 }

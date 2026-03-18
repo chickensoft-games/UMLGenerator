@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Helpers;
 using Models;
 using Modules;
@@ -14,6 +15,7 @@ public class PumlWriter
 
 	private readonly IDictionary<string, BaseNode> _sceneNodeList;
 	private readonly Dictionary<Type, IModule> _modules;
+	private readonly Dictionary<int, string> _paddingCache = new();
 
 	public PumlWriter(IDictionary<string, BaseNode> sceneNodeList)
 	{
@@ -45,51 +47,68 @@ public class PumlWriter
 		}
 	}
 
+	private string GetPadding(int depth)
+	{
+		if (!_paddingCache.TryGetValue(depth, out var padding))
+		{
+			padding = new string(' ', depth * 4);
+			_paddingCache[depth] = padding;
+		}
+		return padding;
+	}
+
+	private List<BaseNode> GetChildrenToDraw(BaseNode node)
+	{
+		var children = new List<BaseNode>();
+		var seen = new HashSet<BaseNode>();
+
+		foreach (var kvp in node.ModuleItems)
+		{
+			if (!_modules[kvp.Key].ShouldDrawChildren)
+				continue;
+
+			foreach (var item in kvp.Value)
+			{
+				var childNode = item.Node;
+				if (childNode != null &&
+				    childNode != node &&
+				    childNode.ModuleItems.Count > 0 &&
+				    seen.Add(childNode))
+				{
+					children.Add(childNode);
+				}
+			}
+		}
+
+		return children;
+	}
+
 	public string GetDiagram(BaseNode node, int depth, int fileDepth, ClassDiagramAttribute attribute)
 	{
-		var childrenToDraw = node.ModuleItems
-			.Where(x => _modules[x.Key].ShouldDrawChildren)
-			.Select(x => x.Value)
-			.SelectMany(x => x)
-			.Select(x => x.Node)
-			.Where(moduleNode => moduleNode != node)
-			.Where(x => x?.ModuleItems.Any() ?? false).Distinct().ToList();
+		var sb = new StringBuilder(4096);
+		BuildDiagramIterative(sb, node, depth, fileDepth, attribute, new HashSet<BaseNode>());
+		return sb.ToString();
+	}
 
+	private void BuildDiagramIterative(StringBuilder sb, BaseNode node, int depth, int fileDepth, ClassDiagramAttribute attribute, HashSet<BaseNode> visited)
+	{
+		if (!visited.Add(node))
+			return;
+
+		var childrenToDraw = GetChildrenToDraw(node);
 		var typeDepth = childrenToDraw.Count > 0 ? fileDepth + 1 : fileDepth;
 
 		var typeDefinition = GetTypeDefinition(node, depth, typeDepth, attribute);
 
 		if (childrenToDraw.Count == 0)
-			return typeDefinition;
+		{
+			sb.Append(typeDefinition);
+			return;
+		}
 
 		var newFilePath = attribute.UseVSCodePaths ?
 			NodeExtensions.GetVSCodePath(node.FullFilePath) :
 			NodeExtensions.GetPathWithDepth(node.FilePath, depth);
-
-		var childrenDefinitions = string.Join("\n",
-			childrenToDraw.Select(x =>
-				GetDiagram(x, depth, fileDepth + 1, attribute)
-			)
-		);
-
-		var relationPadding = new string(' ', typeDepth * 4);
-
-		var onlyHasDI = node.ModuleItems.All(y => y.Key == typeof(DependencyInjectionModule));
-
-		var childrenRelationships = string.Join("\n",
-			childrenToDraw.Select(x =>
-			{
-				var memberRelationship = onlyHasDI
-					? string.Empty
-					: "::" + ((node as SceneNode)?
-					  .Node?
-					  .AllChildren
-					  .FirstOrDefault(child => child.Type == x.Name)?.Name
-					  ?? x.Name);
-
-				return $"{relationPadding}{node.Name}{memberRelationship} {(x.ModuleItems.Count == 0 ? string.Empty : "-")}--> {x.Name}";
-			})
-		);
 
 		var packageType = node switch
 		{
@@ -98,57 +117,51 @@ public class PumlWriter
 			_ => throw new NotImplementedException()
 		};
 
-		var depthPadding = new string(' ', fileDepth * 4);
+		var depthPadding = GetPadding(fileDepth);
+		var relationPadding = GetPadding(typeDepth);
 
-		return
-			$$"""
-			  {{depthPadding}}package {{node.Name}}-{{packageType}} [[{{newFilePath}}]] {
-			  {{typeDefinition}}
-			  {{childrenDefinitions}}
-			  {{childrenRelationships}}
-			  {{depthPadding}}}
-			  """;
+		// Write package header
+		sb.AppendFormat("{0}package {1}-{2} [[{3}]] {{\n{4}\n",
+			depthPadding, node.Name, packageType, newFilePath, typeDefinition);
+
+		// Build children definitions
+		foreach (var child in childrenToDraw)
+		{
+			BuildDiagramIterative(sb, child, depth, fileDepth + 1, attribute, visited);
+			sb.Append('\n');
+		}
+
+		// Build relationships
+		var onlyHasDI = node.ModuleItems.All(y => y.Key == typeof(DependencyInjectionModule));
+		var sceneNode = node as SceneNode;
+
+		foreach (var child in childrenToDraw)
+		{
+			var memberRelationship = string.Empty;
+
+			if (!onlyHasDI)
+			{
+				memberRelationship = sceneNode?.Node?.AllChildren
+					.FirstOrDefault(c => c.Type == child.Name)?.Name ?? child.Name;
+				memberRelationship = "::" + memberRelationship;
+			}
+
+			var arrow = child.ModuleItems.Count == 0 ? "-->" : "--->";
+
+			sb.AppendFormat("{0}{1}{2} {3} {4}\n",
+				relationPadding, node.Name, memberRelationship, arrow, child.Name);
+		}
+
+		sb.Append(depthPadding).Append('}');
 	}
 
 	private string GetTypeDefinition(BaseNode node, int depth, int fileDepth, ClassDiagramAttribute classDiagramAttribute)
 	{
-		var depthPadding = new string(' ', fileDepth * 4);
-		var depthPadding2 = new string(' ', (fileDepth + 1) * 4);
+		var sb = new StringBuilder(2048);
+		var depthPadding = GetPadding(fileDepth);
+		var depthPadding2 = GetPadding(fileDepth + 1);
 
 		var useVsCodePaths = classDiagramAttribute.UseVSCodePaths;
-
-		var outputList = new Dictionary<Type, List<string>>();
-		var orderedModules = node.ModuleItems.OrderBy(x => _modules[x.Key].Order);
-
-		foreach (var modulePair in orderedModules)
-		{
-			var module = _modules[modulePair.Key];
-			var moduleItems = modulePair.Value;
-
-			var moduleString = module
-				.InvokeModule(node, moduleItems, useVsCodePaths, depth)
-				.ToList();
-
-			List<string> finalString = [module.Title, ..moduleString];
-
-			finalString = finalString.Select(x => depthPadding2 + x)
-				.ToList();
-
-			outputList.Add(modulePair.Key, finalString);
-		}
-
-		var mergedList = outputList
-			.GroupBy(x => _modules[x.Key].Order)
-			.Select(x =>
-			{
-				var result = x
-					.ToList()
-					.SelectMany(y => y.Value);
-				var join = string.Join("\n", result);
-				return join;
-			});
-
-		var moduleOutput = string.Join($"\n{depthPadding2}--\n", mergedList);
 		var hasScript = node.Context != null;
 
 		var newFilePath = useVsCodePaths ?
@@ -156,15 +169,67 @@ public class PumlWriter
 			NodeExtensions.GetPathWithDepth(hasScript ? node.ScriptPath : node.FilePath, depth);
 
 		var fileType = hasScript ? "Script" : "Scene";
-
 		var spotCharacter = hasScript ? "" : "<< (S,black) >>";
 
-		return
-		$$"""
-		{{depthPadding}}class {{node.Name}} {{spotCharacter}} {
-		{{depthPadding2}}[[{{newFilePath}} {{fileType}}File]]
-		{{moduleOutput}}
-		{{depthPadding}}}
-		""";
+		// Write class header with file link
+		sb.AppendFormat("{0}class {1} {2} {{\n{3}[[{4} {5}File]]",
+			depthPadding, node.Name, spotCharacter, depthPadding2, newFilePath, fileType);
+
+		// Group modules by order and build output
+		var modulesByOrder = new SortedDictionary<int, List<(Type Type, List<string> Content)>>();
+
+		foreach (var modulePair in node.ModuleItems)
+		{
+			var module = _modules[modulePair.Key];
+			var order = module.Order;
+
+			if (!modulesByOrder.TryGetValue(order, out var list))
+			{
+				list = new List<(Type, List<string>)>();
+				modulesByOrder[order] = list;
+			}
+
+			var moduleStrings = module
+				.InvokeModule(node, modulePair.Value, useVsCodePaths, depth)
+				.ToList();
+
+			var content = new List<string>(moduleStrings.Count + 1) { module.Title };
+			content.AddRange(moduleStrings);
+
+			list.Add((modulePair.Key, content));
+		}
+
+		// Write module content or empty class body
+		if (modulesByOrder.Count > 0)
+		{
+			sb.Append('\n');
+			bool firstOrderGroup = true;
+
+			foreach (var orderGroup in modulesByOrder.Values)
+			{
+				if (!firstOrderGroup)
+				{
+					sb.AppendFormat("{0}--\n", depthPadding2);
+				}
+				firstOrderGroup = false;
+
+				foreach (var (_, content) in orderGroup)
+				{
+					foreach (var line in content)
+					{
+						sb.Append(depthPadding2).Append(line).Append('\n');
+					}
+				}
+			}
+		}
+		else
+		{
+			sb.Append("\n\n");
+		}
+
+		// Close class definition
+		sb.Append(depthPadding).Append('}');
+
+		return sb.ToString();
 	}
 }
