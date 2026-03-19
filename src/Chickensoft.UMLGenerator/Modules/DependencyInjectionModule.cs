@@ -12,11 +12,11 @@ public class DependencyInjectionModule : IModule
 	public string Title => string.Empty;
 	public bool ShouldDrawChildren => true;
 
-	private readonly Dictionary<BaseNode, HashSet<BaseNode>> _items = new();
+	private readonly Dictionary<DiagramNode, HashSet<DiagramNode>> _items = new();
 
-	public void InitModule(IDictionary<string, BaseNode> sceneNodeList)
+	public void InitModule(NodeRegistry nodeRegistry)
 	{
-		foreach (var otherNode in sceneNodeList.Values)
+		foreach (var otherNode in nodeRegistry.AllNodes)
 		{
 			var constructorParameterList = otherNode.TypeSyntax?
 				.Members.OfType<ConstructorDeclarationSyntax>()
@@ -24,8 +24,8 @@ public class DependencyInjectionModule : IModule
 				.Concat([otherNode.TypeSyntax?.ParameterList]);
 
 			var nodesInConstructor = constructorParameterList?.SelectMany(paramList =>
-				paramList?.Parameters.Select(paramSyntax => paramSyntax.Type.FindNodeByType(otherNode.SemanticModel, sceneNodeList)) ?? [])
-				.OfType<BaseNode>()
+				paramList?.Parameters.Select(paramSyntax => nodeRegistry.FindNodeByType(paramSyntax.Type, otherNode.SemanticModel)) ?? [])
+				.OfType<DiagramNode>()
 				.Distinct() ?? [];
 
 			foreach (var node in nodesInConstructor)
@@ -42,7 +42,7 @@ public class DependencyInjectionModule : IModule
 		}
 	}
 
-	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
+	public List<ModuleItem> SetupModule(DiagramNode node, NodeRegistry nodeRegistry)
 	{
 		var baseTypeSyntax = node.TypeSyntax;
 		if (baseTypeSyntax == null || !_items.TryGetValue(node, out var nodeList))
@@ -61,7 +61,7 @@ public class DependencyInjectionModule : IModule
 		return items;
 	}
 
-	public IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
+	public IEnumerable<string> InvokeModule(DiagramNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
 	{
 		return [];
 	}

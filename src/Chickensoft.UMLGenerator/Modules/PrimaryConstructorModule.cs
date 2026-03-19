@@ -12,9 +12,9 @@ public class PrimaryConstructorModule : IModule
 	public string Title => "[Primary Constructor]";
 	public bool ShouldDrawChildren => false;
 
-	public void InitModule(IDictionary<string, BaseNode> sceneNodeList) { }
+	public void InitModule(NodeRegistry nodeRegistry) { }
 
-	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
+	public List<ModuleItem> SetupModule(DiagramNode node, NodeRegistry nodeRegistry)
 	{
 		var baseTypeSyntax = node.TypeSyntax;
 		if (baseTypeSyntax == null)
@@ -26,7 +26,7 @@ public class PrimaryConstructorModule : IModule
 		foreach (var ctx in parameterList)
 		{
 			var typeName = ctx.Type?.ToFullString().Trim();
-			var childClassNode = ctx.Type.FindNodeByType(node.SemanticModel, sceneNodeList);
+			var childClassNode = nodeRegistry.FindNodeByType(ctx.Type, node.SemanticModel);
 			if (childClassNode == null)
 				continue;
 
@@ -42,7 +42,7 @@ public class PrimaryConstructorModule : IModule
 		return items;
 	}
 
-	public IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
+	public IEnumerable<string> InvokeModule(DiagramNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
 	{
 		var parentScriptPath = node.GetScriptPath(useVSCodePaths, depth);
 		var typeName = node.TypeSyntax?.Identifier.ToString();

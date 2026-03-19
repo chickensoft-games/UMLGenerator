@@ -12,9 +12,9 @@ public class ProvisionModule : IModule
 	public string Title => "[Provisions]";
 	public bool ShouldDrawChildren => false;
 
-	public void InitModule(IDictionary<string, BaseNode> sceneNodeList) { }
+	public void InitModule(NodeRegistry nodeRegistry) { }
 
-	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
+	public List<ModuleItem> SetupModule(DiagramNode node, NodeRegistry nodeRegistry)
 	{
 		var baseTypeSyntax = node.TypeSyntax;
 		if (baseTypeSyntax == null)
@@ -30,7 +30,7 @@ public class ProvisionModule : IModule
 		{
 			var typeArgSyntax = (ctx.ExplicitInterfaceSpecifier?.Name as GenericNameSyntax)?.TypeArgumentList.Arguments[0];
 			var typeName = typeArgSyntax?.ToString();
-			var childClassNode = typeArgSyntax.FindNodeByType(node.SemanticModel, sceneNodeList);
+			var childClassNode = nodeRegistry.FindNodeByType(typeArgSyntax, node.SemanticModel);
 			if (childClassNode == null)
 				continue;
 
@@ -46,7 +46,7 @@ public class ProvisionModule : IModule
 		return items;
 	}
 
-	public IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
+	public IEnumerable<string> InvokeModule(DiagramNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
 	{
 		var parentScriptPath = node.GetScriptPath(useVSCodePaths, depth);
 		foreach (var module in moduleItems)

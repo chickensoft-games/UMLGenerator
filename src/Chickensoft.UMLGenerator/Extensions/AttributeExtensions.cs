@@ -7,7 +7,7 @@ using Models;
 
 public static class AttributeExtensions
 {
-	public static ClassDiagramAttribute GetClassDiagramAttribute(this BaseNode node)
+	public static ClassDiagramAttribute GetClassDiagramAttribute(this DiagramNode node)
 	{
 		var attribute = node.GetClassDiagramAttributeSyntax();
 		var arguments = attribute?.ArgumentList?.Arguments;
@@ -18,7 +18,7 @@ public static class AttributeExtensions
 		};
 	}
 
-	private static AttributeSyntax? GetClassDiagramAttributeSyntax(this BaseNode node)
+	private static AttributeSyntax? GetClassDiagramAttributeSyntax(this DiagramNode node)
 	{
 		var attributeName = nameof(ClassDiagramAttribute).Replace("Attribute", "");
 		var classDiagramAttribute = node.TypeSyntax?
@@ -28,7 +28,7 @@ public static class AttributeExtensions
 		return classDiagramAttribute;
 	}
 
-	public static bool HasClassDiagramAttribute(this BaseNode node) => node.GetClassDiagramAttributeSyntax() != null;
+	public static bool HasClassDiagramAttribute(this DiagramNode node) => node.GetClassDiagramAttributeSyntax() != null;
 
 	private static bool GetAttributeBooleanValue(SeparatedSyntaxList<AttributeArgumentSyntax>? arguments, string attributeName)
 	{

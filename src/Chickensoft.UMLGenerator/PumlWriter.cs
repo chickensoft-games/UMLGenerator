@@ -13,13 +13,13 @@ public class PumlWriter
 {
 	public IReadOnlyDictionary<Type, IModule> Modules => _modules;
 
-	private readonly IDictionary<string, BaseNode> _sceneNodeList;
+	private readonly NodeRegistry _nodeRegistry;
 	private readonly Dictionary<Type, IModule> _modules;
 	private readonly Dictionary<int, string> _paddingCache = new();
 
-	public PumlWriter(IDictionary<string, BaseNode> sceneNodeList)
+	public PumlWriter(NodeRegistry nodeRegistry)
 	{
-		_sceneNodeList = sceneNodeList;
+		_nodeRegistry = nodeRegistry;
 		var interfaceType = typeof(IModule);
 
 		var navTypes = Assembly.GetExecutingAssembly().GetTypes()
@@ -31,15 +31,15 @@ public class PumlWriter
 
 		foreach (var module in _modules.Values)
 		{
-			module.InitModule(_sceneNodeList);
+			module.InitModule(_nodeRegistry);
 		}
 	}
 
-	public void GenerateHierarchy(BaseNode node)
+	public void GenerateHierarchy(DiagramNode node)
 	{
 		foreach (var module in _modules.Values)
 		{
-			var output = module.SetupModule(node, _sceneNodeList);
+			var output = module.SetupModule(node, _nodeRegistry);
 			if (output.Count > 0)
 			{
 				node.AddModule(module.GetType(), output);
@@ -57,10 +57,10 @@ public class PumlWriter
 		return padding;
 	}
 
-	private List<BaseNode> GetChildrenToDraw(BaseNode node)
+	private List<DiagramNode> GetChildrenToDraw(DiagramNode node)
 	{
-		var children = new List<BaseNode>();
-		var seen = new HashSet<BaseNode>();
+		var children = new List<DiagramNode>();
+		var seen = new HashSet<DiagramNode>();
 
 		foreach (var kvp in node.ModuleItems)
 		{
@@ -83,14 +83,14 @@ public class PumlWriter
 		return children;
 	}
 
-	public string GetDiagram(BaseNode node, int depth, int fileDepth, ClassDiagramAttribute attribute)
+	public string GetDiagram(DiagramNode node, int depth, int fileDepth, ClassDiagramAttribute attribute)
 	{
 		var sb = new StringBuilder(4096);
-		BuildDiagramIterative(sb, node, depth, fileDepth, attribute, new HashSet<BaseNode>());
+		BuildDiagramIterative(sb, node, depth, fileDepth, attribute, new HashSet<DiagramNode>());
 		return sb.ToString();
 	}
 
-	private void BuildDiagramIterative(StringBuilder sb, BaseNode node, int depth, int fileDepth, ClassDiagramAttribute attribute, HashSet<BaseNode> visited)
+	private void BuildDiagramIterative(StringBuilder sb, DiagramNode node, int depth, int fileDepth, ClassDiagramAttribute attribute, HashSet<DiagramNode> visited)
 	{
 		if (!visited.Add(node))
 			return;
@@ -110,12 +110,7 @@ public class PumlWriter
 			NodeExtensions.GetVSCodePath(node.FullFilePath) :
 			NodeExtensions.GetPathWithDepth(node.FilePath, depth);
 
-		var packageType = node switch
-		{
-			ClassNode => "Type",
-			SceneNode => "Scene",
-			_ => throw new NotImplementedException()
-		};
+		var packageType = node.HasScene ? "Scene" : "Type";
 
 		var depthPadding = GetPadding(fileDepth);
 		var relationPadding = GetPadding(typeDepth);
@@ -133,7 +128,6 @@ public class PumlWriter
 
 		// Build relationships
 		var onlyHasDI = node.ModuleItems.All(y => y.Key == typeof(DependencyInjectionModule));
-		var sceneNode = node as SceneNode;
 
 		foreach (var child in childrenToDraw)
 		{
@@ -141,7 +135,7 @@ public class PumlWriter
 
 			if (!onlyHasDI)
 			{
-				memberRelationship = sceneNode?.Node?.AllChildren
+				memberRelationship = node.SceneNode?.AllChildren
 					.FirstOrDefault(c => c.Type == child.Name)?.Name ?? child.Name;
 				memberRelationship = "::" + memberRelationship;
 			}
@@ -155,14 +149,14 @@ public class PumlWriter
 		sb.Append(depthPadding).Append('}');
 	}
 
-	private string GetTypeDefinition(BaseNode node, int depth, int fileDepth, ClassDiagramAttribute classDiagramAttribute)
+	private string GetTypeDefinition(DiagramNode node, int depth, int fileDepth, ClassDiagramAttribute classDiagramAttribute)
 	{
 		var sb = new StringBuilder(2048);
 		var depthPadding = GetPadding(fileDepth);
 		var depthPadding2 = GetPadding(fileDepth + 1);
 
 		var useVsCodePaths = classDiagramAttribute.UseVSCodePaths;
-		var hasScript = node.Context != null;
+		var hasScript = node.HasScript;
 
 		var newFilePath = useVsCodePaths ?
 			NodeExtensions.GetVSCodePath(hasScript ? node.FullScriptPath : node.FullFilePath) :

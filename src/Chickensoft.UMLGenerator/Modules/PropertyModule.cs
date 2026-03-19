@@ -13,9 +13,9 @@ public class PropertyModule : IModule
 	public string Title => "[Properties]";
 	public bool ShouldDrawChildren => true;
 
-	public void InitModule(IDictionary<string, BaseNode> sceneNodeList) { }
+	public void InitModule(NodeRegistry nodeRegistry) { }
 
-	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
+	public List<ModuleItem> SetupModule(DiagramNode node, NodeRegistry nodeRegistry)
 	{
 		var baseTypeSyntax = node.TypeSyntax;
 		var hierarchyContext = node.SemanticModel;
@@ -37,7 +37,7 @@ public class PropertyModule : IModule
 		foreach (var ctx in propertyDeclarations)
 		{
 			var typeName = ctx.Type.ToString();
-			var childClassNode = ctx.Type.FindNodeByType(node.SemanticModel, sceneNodeList);
+			var childClassNode = nodeRegistry.FindNodeByType(ctx.Type, node.SemanticModel);
 
 			items.Add(new ModuleItem
 			{
@@ -51,7 +51,7 @@ public class PropertyModule : IModule
 		return items;
 	}
 
-	public IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
+	public IEnumerable<string> InvokeModule(DiagramNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
 	{
 		var parentScriptPath = node.GetScriptPath(useVSCodePaths, depth);
 		foreach (var module in moduleItems)

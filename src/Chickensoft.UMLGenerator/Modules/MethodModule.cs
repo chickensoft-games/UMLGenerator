@@ -13,9 +13,9 @@ public class MethodModule : IModule
 	public string Title => "[Methods]";
 	public bool ShouldDrawChildren => false;
 
-	public void InitModule(IDictionary<string, BaseNode> sceneNodeList) { }
+	public void InitModule(NodeRegistry nodeRegistry) { }
 
-	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
+	public List<ModuleItem> SetupModule(DiagramNode node, NodeRegistry nodeRegistry)
 	{
 		var baseTypeSyntax = node.TypeSyntax;
 		var interfaceMethods = node.InterfaceSyntax?.Members.OfType<MethodDeclarationSyntax>() ?? [];
@@ -44,7 +44,7 @@ public class MethodModule : IModule
 		return items;
 	}
 
-	public IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
+	public IEnumerable<string> InvokeModule(DiagramNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
 	{
 		var parentScriptPath = node.GetScriptPath(useVSCodePaths, depth);
 		foreach (var module in moduleItems)

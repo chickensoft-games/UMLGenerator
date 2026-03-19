@@ -1,7 +1,6 @@
 namespace Chickensoft.UMLGenerator.Modules;
 
 using System.Collections.Generic;
-using System.Linq;
 using Helpers;
 using Models;
 
@@ -11,31 +10,31 @@ public class NodeModule : IModule
 	public string Title => "[Nodes]";
 	public bool ShouldDrawChildren => true;
 
-	public void InitModule(IDictionary<string, BaseNode> sceneNodeList) { }
+	public void InitModule(NodeRegistry nodeRegistry) { }
 
-	public List<ModuleItem> SetupModule(BaseNode node, IDictionary<string, BaseNode> sceneNodeList)
+	public List<ModuleItem> SetupModule(DiagramNode node, NodeRegistry nodeRegistry)
 	{
 		var items = new List<ModuleItem>();
-		if (node is SceneNode { Node.AllChildren: not null } sceneNode)
-		{
-			foreach (var nodeDefinition in sceneNode.Node.AllChildren)
-			{
-				if (sceneNodeList.Values.FirstOrDefault(x => (x.TypeSyntax?.Identifier.ToString() ?? x.Name) == nodeDefinition.Type) is not { } childSceneNode)
-					continue;
+		if (!node.HasScene || node.SceneNode?.AllChildren == null)
+			return items;
 
-				items.Add(new ModuleItem
-				{
-					Node = childSceneNode,
-					Name = nodeDefinition.Name,
-					TypeName = nodeDefinition.Type
-				});
-			}
+		foreach (var childNodeDefinition in node.SceneNode.AllChildren)
+		{
+			if (!nodeRegistry.TryGetBySceneName(childNodeDefinition.Type, out var childNode))
+				continue;
+
+			items.Add(new ModuleItem
+			{
+				Node = childNode,
+				Name = childNodeDefinition.Name,
+				TypeName = childNodeDefinition.Type
+			});
 		}
 
 		return items;
 	}
 
-	public IEnumerable<string> InvokeModule(BaseNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
+	public IEnumerable<string> InvokeModule(DiagramNode node, List<ModuleItem> moduleItems, bool useVSCodePaths, int depth)
 	{
 		foreach (var module in moduleItems)
 		{

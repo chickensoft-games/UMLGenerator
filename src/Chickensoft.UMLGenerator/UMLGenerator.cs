@@ -53,8 +53,7 @@ public class UMLGenerator : IIncrementalGenerator
 
 	private void GenerateDiagram(SourceProductionContext context, GenerationData data)
 	{
-		var sceneNodeList = new Dictionary<string, SceneNode>(StringComparer.OrdinalIgnoreCase);
-		var classNodeList = new Dictionary<string, ClassNode>(StringComparer.OrdinalIgnoreCase);
+		var nodeRegistry = new NodeRegistry();
 
 		//Look at all TSCN's in the project which are marked as AdditionalFiles
 		foreach (var additionalText in data.TscnFiles)
@@ -64,10 +63,16 @@ public class UMLGenerator : IIncrementalGenerator
 				continue;
 
 			var listener = TscnHelpers.RunTscnBaseListener(tscnContent!, context.ReportDiagnostic, additionalText.Path);
+			if (listener.RootNode == null)
+				continue;
 
-			var sceneNode = new SceneNode(listener, additionalText, data);
-			if(sceneNode.FullFilePath != null)
-				sceneNodeList.Add(sceneNode.FullFilePath, sceneNode);
+			var fullScenePath = additionalText.Path.NormalizePath();
+			var fullScriptPath = Path.Combine(data.ProjectDir ?? "", listener.Script?.Path.Replace("res://", "") ?? "");
+
+			var node = new DiagramNode(data);
+			node.SetSceneComponent(listener.RootNode, fullScenePath, fullScriptPath);
+
+			nodeRegistry.AddBySceneName(node.Name, node);
 		}
 
 		//Look at all TypedFiles
@@ -78,32 +83,33 @@ public class UMLGenerator : IIncrementalGenerator
 			if (syntaxContext.Node is not TypeDeclarationSyntax)
 				continue;
 
-			if (sceneNodeList.Values.FirstOrDefault(x => x.FullScriptPath == syntaxContextGrouping.Key) is { } sceneNode)
+			var fullScriptPath = syntaxContextGrouping.Key.NormalizePath();
+
+			if (nodeRegistry.TryGetByFilePath(fullScriptPath, out var existingNode))
 			{
-				sceneNode.Context = syntaxContext;
+				existingNode.SetScriptComponent(syntaxContext, fullScriptPath);
+
+				if (existingNode.FullyQualifiedName != null)
+					nodeRegistry.AddByFQN(existingNode.FullyQualifiedName, existingNode);
 			}
 			else
 			{
-				var classNode = new ClassNode(syntaxContext, data);
-				classNodeList.Add(classNode.FullyQualifiedName!, classNode);
+				var node = new DiagramNode(data);
+				node.SetScriptComponent(syntaxContext, fullScriptPath);
+
+				if (node.FullyQualifiedName != null)
+					nodeRegistry.AddByFQN(node.FullyQualifiedName, node);
 			}
 		}
 
-		var hierarchyList = new Dictionary<string, BaseNode>(sceneNodeList.Count + classNodeList.Count, StringComparer.OrdinalIgnoreCase);
+		var pumlWriter = new PumlWriter(nodeRegistry);
 
-		foreach (var keyValuePair in sceneNodeList)
-			hierarchyList.Add(keyValuePair.Key, keyValuePair.Value);
-		foreach (var keyValuePair in classNodeList)
-			hierarchyList.Add(keyValuePair.Key, keyValuePair.Value);
-
-		var pumlWriter = new PumlWriter(hierarchyList);
-
-		foreach (var hierarchy in hierarchyList.Values)
+		foreach (var node in nodeRegistry.AllNodes)
 		{
-			pumlWriter.GenerateHierarchy(hierarchy);
+			pumlWriter.GenerateHierarchy(node);
 		}
 
-		var nodesWithAttribute = hierarchyList.Values.Where(x => x.HasClassDiagramAttribute()).ToList();
+		var nodesWithAttribute = nodeRegistry.AllNodes.Where(x => x.HasClassDiagramAttribute()).ToList();
 
 		foreach (var node in nodesWithAttribute)
 		{
@@ -117,8 +123,8 @@ public class UMLGenerator : IIncrementalGenerator
 
 			if (classDiagramAttribute.GetAllTopLevelNodes)
 			{
-				var referencedNodes = new HashSet<BaseNode>();
-				foreach (var baseNode in hierarchyList.Values)
+				var referencedNodes = new HashSet<DiagramNode>();
+				foreach (var baseNode in nodeRegistry.AllNodes)
 				{
 					foreach (var moduleItem in baseNode.ModuleItems)
 					{
@@ -133,7 +139,7 @@ public class UMLGenerator : IIncrementalGenerator
 					}
 				}
 
-				var topLevelNodes = hierarchyList.Values
+				var topLevelNodes = nodeRegistry.AllNodes
 					.Where(topLevelNode => topLevelNode.ModuleItems.Count != 0 && !referencedNodes.Contains(topLevelNode))
 					.OrderBy(x => x.Name)
 					.ToList();
