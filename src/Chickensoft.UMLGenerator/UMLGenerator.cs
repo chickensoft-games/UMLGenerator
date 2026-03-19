@@ -85,7 +85,7 @@ public class UMLGenerator : IIncrementalGenerator
 			else
 			{
 				var classNode = new ClassNode(syntaxContext, data);
-				classNodeList.Add(classNode.FullFilePath, classNode);
+				classNodeList.Add(classNode.FullyQualifiedName!, classNode);
 			}
 		}
 

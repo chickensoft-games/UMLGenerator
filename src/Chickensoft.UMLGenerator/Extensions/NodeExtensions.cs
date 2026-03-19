@@ -57,8 +57,7 @@ public static class NodeExtensions
 		if (fqn == null)
 			return null;
 
-		var exact = nodes.Values.FirstOrDefault(n => n.FullyQualifiedName == fqn);
-		if (exact != null)
+		if (nodes.TryGetValue(fqn, out var exact))
 			return exact;
 
 		var lastDot = fqn.LastIndexOf('.');
@@ -70,6 +69,6 @@ public static class NodeExtensions
 			? fqn.Substring(0, lastDot + 1) + typePart.Substring(1)
 			: typePart.Substring(1);
 
-		return nodes.Values.FirstOrDefault(n => n.FullyQualifiedName == strippedFqn);
+		return nodes.TryGetValue(strippedFqn, out var node) ? node : null;
 	}
 }
